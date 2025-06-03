@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --gradient-start: theme('colors.blue.500');
+    --gradient-end: theme('colors.blue.700');
+  }
+
+  .dark {
+    --gradient-start: theme('colors.blue.400');
+    --gradient-end: theme('colors.blue.600');
+  }
+}
+
+/* Animations */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(20px, -50px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+  75% { transform: translate(40px, 40px) scale(1.05); }
+}
+
+.animate-blob {
+  animation: blob 20s infinite ease-in-out;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Form styles */
+.form-container {
+  @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-8;
+}
+
+.form-section {
+  @apply mb-8 last:mb-0;
+}
+
+.form-section-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-100 dark:border-gray-700;
+}
+
+.form-group {
+  @apply mb-6 last:mb-0;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  @apply w-full px-4 py-3 rounded-lg
+         bg-gray-50 dark:bg-gray-700
+         border-2 border-gray-200 dark:border-gray-600
+         text-gray-900 dark:text-white
+         placeholder-gray-400 dark:placeholder-gray-400
+         transition duration-200
+         focus:bg-white dark:focus:bg-gray-800
+         focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20
+         focus:border-blue-500 dark:focus:border-blue-400
+         hover:border-gray-300 dark:hover:border-gray-500;
+}
+
+.form-input-with-icon {
+  @apply pl-11;
+}
+
+.form-icon {
+  @apply absolute left-3 top-[2.7rem] text-gray-400 dark:text-gray-500 pointer-events-none;
+}
+
+.form-helper {
+  @apply mt-2 text-sm text-gray-500 dark:text-gray-400;
+}
+
+.form-error {
+  @apply mt-2 text-sm text-red-600 dark:text-red-400;
+}
+
+/* Radio & Checkbox styles */
+.form-radio-group,
+.form-checkbox-group {
+  @apply space-y-2;
+}
+
+.form-radio-item,
+.form-checkbox-item {
+  @apply flex items-center;
+}
+
+.form-radio,
+.form-checkbox {
+  @apply h-5 w-5 text-blue-600 dark:text-blue-400
+         border-2 border-gray-300 dark:border-gray-600
+         focus:ring-blue-500/20 dark:focus:ring-blue-400/20
+         rounded-full;
+}
+
+.form-checkbox {
+  @apply rounded;
+}
+
+.form-radio-label,
+.form-checkbox-label {
+  @apply ml-3 text-sm text-gray-700 dark:text-gray-300;
+}
+
+/* Button styles */
+.btn {
+  @apply inline-flex items-center justify-center 
+         px-6 py-3 rounded-lg
+         font-medium text-sm
+         transition-all duration-200
+         focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-blue-600 dark:bg-blue-500 
+         text-white
+         hover:bg-blue-700 dark:hover:bg-blue-600
+         focus:ring-blue-500 dark:focus:ring-blue-400
+         shadow-sm hover:shadow-md;
+}
+
+.btn-secondary {
+  @apply bg-white dark:bg-gray-700
+         text-gray-700 dark:text-gray-200
+         border-2 border-gray-200 dark:border-gray-600
+         hover:bg-gray-50 dark:hover:bg-gray-600
+         hover:border-gray-300 dark:hover:border-gray-500;
+}
+
+/* Modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 backdrop-blur-sm;
+}
+
+.modal-container {
+  @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+.modal-content {
+  @apply relative bg-white dark:bg-gray-800 
+         rounded-xl shadow-xl 
+         border border-gray-200 dark:border-gray-700
+         transform transition-all duration-300
+         w-full max-w-lg mx-auto my-8;
+}
+
+.modal-header {
+  @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+}
+
+.modal-body {
+  @apply p-6 space-y-4;
+}
+
+.modal-footer {
+  @apply px-6 py-4 bg-gray-50 dark:bg-gray-700/50 
+         border-t border-gray-200 dark:border-gray-700
+         flex justify-end space-x-3;
+}
+
+/* Status badge */
+.status-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+}
+
+.status-badge-success {
+  @apply bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300;
+}
+
+.status-badge-warning {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300;
+}
+
+.status-badge-error {
+  @apply bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300;
+}
+
+.status-badge-info {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Input autofill styles */
+@layer base {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: currentColor;
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
