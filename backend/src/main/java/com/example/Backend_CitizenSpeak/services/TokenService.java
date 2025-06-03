@@ -1,13 +1,18 @@
 package com.example.Backend_CitizenSpeak.services;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
+@Getter
 @Service
 public class TokenService {
 
@@ -29,25 +34,29 @@ public class TokenService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+    public String extractEmailFromToken(String token) {
+        try {
+            System.out.println("Extracting email from token...");
+
+            Claims claims = Jwts.parser()
+                    .setSigningKey(getKey())
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            String email = claims.getSubject();
+            System.out.println("Email extracted: " + email);
+            return email;
+
+        } catch (ExpiredJwtException e) {
+            System.err.println("Token expired: " + e.getMessage());
+            return null;
+        } catch (JwtException e) {
+            System.err.println("Invalid JWT token: " + e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.err.println("Error extracting email from token: " + e.getMessage());
+            return null;
+        }
     }
 
-    public String extractRole(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
-    }
-
-    public SecretKey getKey() {
-        return key;
-    }
 }

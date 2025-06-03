@@ -21,7 +21,4 @@ public class CitizenService {
                 .orElseThrow(() -> new ResourceNotFoundException("Citizen not found with email: " + email));
     }
 
-    public Citizen saveCitizen(Citizen citizen) {
-        return citizenRepository.save(citizen);
-    }
 }

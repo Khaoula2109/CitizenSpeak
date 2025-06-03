@@ -5,24 +5,20 @@ import lombok.Setter;
 
 import java.util.Date;
 import java.util.Map;
-@Getter
+
 @Setter
+@Getter
 public class CommentDTO {
     private String id;
     private Date commentDate;
     private String description;
-    private Map<String, Object> citizen;
-    private Map<String, Object> agent;
-    private boolean isFromCurrentUser;
     private String authorType;
+
+    private Map<String, Object> citizen;
+
+    private Map<String, Object> agent;
+    private Map<String, Object> author;
 
     public CommentDTO() {}
 
-    public boolean isFromCurrentUser() {
-        return isFromCurrentUser;
-    }
-
-    public void setFromCurrentUser(boolean fromCurrentUser) {
-        isFromCurrentUser = fromCurrentUser;
-    }
 }
