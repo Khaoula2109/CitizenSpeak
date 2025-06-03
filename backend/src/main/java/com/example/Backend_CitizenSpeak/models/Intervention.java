@@ -19,6 +19,7 @@ public class Intervention {
     private Date endDate;
     private String status;
     private String description;
+    private List<String> resourcesNeeded;
 
     @DBRef
     private List<CommunityAgent> agents;

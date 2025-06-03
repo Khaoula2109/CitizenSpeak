@@ -1,12 +1,8 @@
 package com.example.Backend_CitizenSpeak.models;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Setter
-@Getter
 @Document(collection = "agents")
 public class CommunityAgent extends User {
     private String service;
@@ -29,4 +25,19 @@ public class CommunityAgent extends User {
         this.department = department;
     }
 
+    public String getService() {
+        return service;
+    }
+
+    public void setService(String service) {
+        this.service = service;
+    }
+
+    public Department getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
 }

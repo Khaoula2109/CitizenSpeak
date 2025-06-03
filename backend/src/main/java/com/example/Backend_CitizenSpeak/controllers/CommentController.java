@@ -237,7 +237,7 @@ public class CommentController {
             dto.setCitizen(authorMap);
         }
 
-        dto.setAuthor(authorMap);
+        dto.setAuthorType(authorMap.toString());
 
         return dto;
     }
