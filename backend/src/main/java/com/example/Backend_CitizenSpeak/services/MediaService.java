@@ -72,6 +72,7 @@ public class MediaService {
 
                 Media media = new Media();
                 media.setMediaFile(filename);
+                media.setComplaintId(complaint.getComplaintId());
                 media.setCaptureDate(new Date());
                 Media savedMediaEntity = mediaRepository.save(media);
 
@@ -90,7 +91,12 @@ public class MediaService {
 
     public Resource loadFileAsResource(String filename) {
         try {
+
+
             Path filePath = this.fileStorageLocation.resolve(filename).normalize();
+            if (!filePath.startsWith(this.fileStorageLocation)) {
+                throw new ResourceNotFoundException("Accès non autorisé au fichier: " + filename);
+            }
             Resource resource = new UrlResource(filePath.toUri());
             if(resource.exists()) {
                 return resource;
@@ -100,5 +106,33 @@ public class MediaService {
         } catch (MalformedURLException ex) {
             throw new ResourceNotFoundException("File not found: " + filename, ex);
         }
+    }
+
+    public byte[] getMediaContent(String id) throws IOException {
+        Media media = getMediaById(id);
+        Path filePath = this.fileStorageLocation.resolve(media.getMediaFile()).normalize();
+
+        if (!Files.exists(filePath)) {
+            throw new ResourceNotFoundException("Physical file not found: " + filePath);
+        }
+
+        return Files.readAllBytes(filePath);
+    }
+    public void deleteMedia(String id) {
+        Media media = getMediaById(id);
+
+        try {
+            Path filePath = this.fileStorageLocation.resolve(media.getMediaFile()).normalize();
+            Files.deleteIfExists(filePath);
+            System.out.println("Deleted file: " + filePath);
+        } catch (IOException e) {
+            System.err.println("Erreur lors de la suppression du fichier: " + e.getMessage());
+        }
+
+        mediaRepository.delete(media);
+    }
+
+    public List<Media> getMediaByComplaintId(String complaintId) {
+        return mediaRepository.findByComplaintId(complaintId);
     }
 }

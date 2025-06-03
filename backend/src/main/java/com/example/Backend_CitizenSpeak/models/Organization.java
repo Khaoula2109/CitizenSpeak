@@ -1,8 +1,7 @@
 package com.example.Backend_CitizenSpeak.models;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,45 +11,24 @@ import java.util.List;
 
 @Document(collection = "organizations")
 public class Organization {
-    @Setter
-    @Getter
     @Id
     private String organizationId;
 
-    @Getter
-    @Setter
     private String name;
-    @Getter
-    @Setter
     private String description;
-    @Getter
-    @Setter
     private String responsible;
-    @Getter
-    @Setter
     private String phone;
-    @Getter
-    @Setter
     private String email;
-    @Getter
-    @Setter
     private double annualBudget;
-    @Setter
-    @Getter
     private boolean active = true;
 
-    @Setter
-    @Getter
     private String headquartersAddress;
 
-    @Setter
-    @Getter
-    private String createdBy;  // Nom de l'admin
-    @Setter
-    @Getter
+    private String createdBy;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     @DBRef
+    @JsonManagedReference
     private List<Department> departments;
     public Organization() {}
 
@@ -65,4 +43,49 @@ public class Organization {
         this.headquartersAddress = headquartersAddress;
     }
 
+    public String getOrganizationId() { return organizationId; }
+    public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getResponsible() { return responsible; }
+    public void setResponsible(String responsible) { this.responsible = responsible; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public double getAnnualBudget() { return annualBudget; }
+    public void setAnnualBudget(double annualBudget) { this.annualBudget = annualBudget; }
+
+
+    public String getHeadquartersAddress() { return headquartersAddress; }
+    public void setHeadquartersAddress(String headquartersAddress) { this.headquartersAddress = headquartersAddress; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public boolean isActive() {
+        return active;
+    }
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public List<Department> getDepartments() {
+        return departments;
+    }
+
+    public void setDepartments(List<Department> departments) {
+        this.departments = departments;
+    }
 }

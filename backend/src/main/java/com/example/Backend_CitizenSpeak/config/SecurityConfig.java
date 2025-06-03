@@ -19,6 +19,7 @@ import org.springframework.web.filter.CorsFilter;
 
 import javax.crypto.SecretKey;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -38,22 +39,9 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain publicAuthFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain authFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher(
-                        "/api/auth/login",
-                        "/api/auth/signup",
-                        "/api/auth/mobile-login",
-                        "/api/auth/verify-otp",
-                        "/api/auth/verify-backup-code",
-                        "/api/auth/generate-backup-codes",
-                        "/api/public/**",
-                        "/api/password/**",
-                        "/api/test",
-                        "/test",
-                        "/",
-                        "/actuator/**"
-                )
+                .securityMatcher("/api/auth/**", "/api/public/**", "/api/password/forgot", "/api/password/reset")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
@@ -62,17 +50,15 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain authenticatedAuthFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain mediaFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher(
-                        "/api/auth/me",
-                        "/api/auth/profile/**",
-                        "/api/auth/change-password"
-                )
+                .securityMatcher("/api/media/**")
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/media/file/**").permitAll()
+                        .anyRequest().authenticated()
+                );
         return http.build();
     }
 
@@ -88,16 +74,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    @Order(4)
-    public SecurityFilterChain mediaFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher("/api/media/**")
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        return http.build();
-    }
+
 
     @Bean
     public JwtDecoder jwtDecoder() {
@@ -108,40 +85,54 @@ public class SecurityConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-
         corsConfiguration.setAllowCredentials(true);
-
-        corsConfiguration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",
-                "http://10.1.4.*:*",
-                "http://10.1.33.*:*",
-                "http://192.168.*.*:*",
-                "https://localhost:*",
+        corsConfiguration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173",
+                "http://localhost:19006",
+                "http://localhost:19000",
+                "http://localhost:8081",
                 "capacitor://localhost",
                 "ionic://localhost",
-                "exp://*:*"
+                "http://localhost:8082",
+                "http://10.1.33.128:8082",
+                "http://10.1.4.176:8082",
+                "exp://10.1.4.176:19000" ,
+                "http://10.1.4.176:8082",
+                "http://10.1.4.176:19000",
+                "exp://10.1.4.176:19000"
+
         ));
-
-        corsConfiguration.setAllowedHeaders(Arrays.asList("*"));
-
-        corsConfiguration.setExposedHeaders(Arrays.asList(
-                "Authorization",
+        corsConfiguration.setAllowedHeaders(Arrays.asList(
+                "Origin",
+                "Access-Control-Allow-Origin",
                 "Content-Type",
                 "Accept",
+                "Authorization",
+                "Origin, Accept",
+                "X-Requested-With",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        corsConfiguration.setExposedHeaders(Arrays.asList(
+                "Origin",
+                "Content-Type",
+                "Accept",
+                "Authorization",
                 "Access-Control-Allow-Origin",
                 "Access-Control-Allow-Credentials"
         ));
-
         corsConfiguration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS"
         ));
 
-        corsConfiguration.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
+        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
-
-        return new CorsFilter(source);
+        return new CorsFilter(urlBasedCorsConfigurationSource);
     }
 
     @Bean

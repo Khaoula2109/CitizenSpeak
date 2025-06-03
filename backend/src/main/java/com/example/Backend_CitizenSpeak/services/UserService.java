@@ -1,5 +1,6 @@
 package com.example.Backend_CitizenSpeak.services;
 
+import com.example.Backend_CitizenSpeak.dto.ProfileDto;
 import com.example.Backend_CitizenSpeak.exceptions.AuthenticationException;
 import com.example.Backend_CitizenSpeak.exceptions.UserAlreadyExistsException;
 import com.example.Backend_CitizenSpeak.exceptions.UserNotFoundException;
@@ -17,8 +18,13 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
 @Service
 public class UserService {
+
+    private final Map<String, String> tempTokenStorage = new HashMap<>();
+
     private final UserRepository userRepository;
     private final AgentRepository agentRepository;
     private final AdminRepository adminRepository;
@@ -68,11 +74,89 @@ public class UserService {
                 analystRepository.save(analyst);
             }
             case "citizen" -> {
-                Citizen citizen = new Citizen(name, email, encodedPassword, phone);
+                Citizen citizen = new Citizen(name, email, encodedPassword, phone, extra);
                 citizenRepository.save(citizen);
             }
             default -> throw new IllegalArgumentException("Unknown role: " + role);
         }
+    }
+
+    public String processLogin(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+
+        if (!user.isActive()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Votre compte est inactif.");
+        }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Mot de passe incorrect");
+        }
+
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        user.setOtp(otp);
+        userRepository.save(user);
+        sendOtpEmail(user.getEmail(), otp);
+
+        String tempToken = UUID.randomUUID().toString();
+        tempTokenStorage.put(tempToken, email);
+
+        return tempToken;
+    }
+
+    private void sendOtpEmail(String email, String otp) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Votre code OTP");
+        message.setText("Bonjour,\n\nVotre code OTP est : " + otp + "\n\nIl est valable 5 minutes.");
+        mailSender.send(message);
+    }
+
+    public String verifyOtp(String tempToken, String otp) {
+        System.out.println("Token reçu: " + tempToken);
+        System.out.println("TempTokenStorage: " + tempTokenStorage);
+        String email = tempTokenStorage.get(tempToken);
+        if (email == null) {
+            throw new IllegalArgumentException("Token temporaire invalide ou expiré");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+
+        if (!otp.equals(user.getOtp())) {
+            throw new IllegalArgumentException("OTP invalide");
+        }
+
+        user.setOtp(null);
+        userRepository.save(user);
+        tempTokenStorage.remove(tempToken);
+
+        return email;
+    }
+
+    public List<String> generateBackupCodes(String email, int count) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+
+        List<String> codes = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            codes.add(UUID.randomUUID().toString().substring(0, 8));
+        }
+
+        userRepository.save(user);
+        return codes;
+    }
+
+    public void verifyBackupCode(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+
+        if (user.getBackupCodes() == null || !user.getBackupCodes().contains(code)) {
+            throw new IllegalArgumentException("Code de secours invalide");
+        }
+
+        user.getBackupCodes().remove(code);
+        userRepository.save(user);
     }
 
     public void changePassword(String email, String currentPassword, String newPassword) {
@@ -100,6 +184,62 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
     }
 
+    public void updateInternalUser(String email,
+                                   String newName,
+                                   String newPhone,
+                                   String newRole,
+                                   String extra) {
+        User u = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+        u.setName(newName);
+        u.setPhone(newPhone);
+        u.setRole(newRole);
+        userRepository.save(u);
+
+        switch (newRole.toLowerCase()) {
+            case "admin" -> {
+                Admin adm = adminRepository.findByEmail(email)
+                        .orElseThrow(() -> new UserNotFoundException("Admin introuvable"));
+                adm.setName(newName);
+                adm.setPhone(newPhone);
+                adminRepository.save(adm);
+            }
+            case "analyst" -> {
+                Analyst anl = analystRepository.findByEmail(email)
+                        .orElseThrow(() -> new UserNotFoundException("Analyst introuvable"));
+                anl.setName(newName);
+                anl.setPhone(newPhone);
+                analystRepository.save(anl);
+            }
+            case "agent" -> {
+                CommunityAgent ag = agentRepository.findByEmail(email)
+                        .orElseThrow(() -> new UserNotFoundException("Agent introuvable"));
+                ag.setName(newName);
+                ag.setPhone(newPhone);
+                ag.setService(extra);
+                agentRepository.save(ag);
+            }
+            default -> throw new IllegalArgumentException("Role inconnu: " + newRole);
+        }
+    }
+
+    public void deleteUser(String email) {
+        User u = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+        String role = u.getRole().toLowerCase();
+        switch (role) {
+            case "admin"   -> adminRepository.deleteByEmail(email);
+            case "analyst" -> analystRepository.deleteByEmail(email);
+            case "agent"   -> agentRepository.deleteByEmail(email);
+            case "citizen" -> citizenRepository.deleteByEmail(email);
+            default        -> {}
+        }
+        userRepository.deleteByEmail(email);
+    }
+
+    /**
+     * Valide les identifiants sans envoyer d'OTP (pour l'authentification mobile)
+     */
     public void validateCredentials(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -116,17 +256,13 @@ public class UserService {
     public void sendPasswordResetToken(String email) {
         User user = userRepository.findByEmail(email)
                 .orElse(null);
-
         if (user == null) {
             return;
         }
-
         String resetToken = UUID.randomUUID().toString();
-
         user.setResetToken(resetToken);
         user.setResetTokenExpiry(Instant.now().plus(30, ChronoUnit.MINUTES));
         userRepository.save(user);
-
         sendPasswordResetEmail(user.getEmail(), resetToken);
     }
 
@@ -147,17 +283,46 @@ public class UserService {
     public void resetPassword(String token, String newPassword) {
         User user = userRepository.findByResetToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token"));
-
         if (user.getResetTokenExpiry().isBefore(Instant.now())) {
             throw new IllegalArgumentException("Token has expired");
         }
-
         user.setPassword(passwordEncoder.encode(newPassword));
-
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
-
         userRepository.save(user);
+    }
+
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
+    public ProfileDto getProfileByEmail(String email) {
+        User u = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Utilisateur non trouvé"));
+        String deptId   = "";
+        String deptName = "";
+        String service  = "";
+
+        if ("agent".equalsIgnoreCase(u.getRole())) {
+            CommunityAgent ag = agentRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Agent introuvable"));
+            if (ag.getDepartment() != null) {
+                deptId   = ag.getDepartment().getDepartmentId();
+                deptName = ag.getDepartment().getName();
+            }
+            service = ag.getService();
+        }
+
+        return new ProfileDto(
+                u.getName(),
+                u.getEmail(),
+                u.getPhone(),
+                u.getRole(),
+                u.getPhoto(),
+                deptId,
+                deptName,
+                service
+        );
     }
 
 }
