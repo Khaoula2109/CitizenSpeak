@@ -10,8 +10,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-@Getter
 @Setter
+@Getter
 @Document(collection = "complaints")
 public class Complaint {
     @Id
@@ -34,20 +34,22 @@ public class Complaint {
     private Category category;
 
     @DBRef
+    private Infrastructure infrastructure;
+
+    @DBRef
     private List<Media> media;
 
+    @DBRef
+    private List<StatusHistory> statusHistory;
+
+    @DBRef
+    private List<Comment> comments;
     @DBRef
     private CommunityAgent assignedAgent;
 
     @DBRef
     private Department assignedDepartment;
-
-    public Complaint() {
-        this.creationDate = new Date();
-        this.lastUpdated = new Date();
-        this.status = "New";
-        this.priorityLevel = 3;
-    }
+    public Complaint() {}
 
     public Complaint(String title,
                      String description,
@@ -56,8 +58,8 @@ public class Complaint {
                      double latitude,
                      double longitude,
                      Citizen citizen,
-                     Category category) {
-        this();
+                     Category category,
+                     Infrastructure infrastructure) {
         this.title = title;
         this.description = description;
         this.creationDate = creationDate;
@@ -66,15 +68,8 @@ public class Complaint {
         this.longitude = longitude;
         this.citizen = citizen;
         this.category = category;
+        this.infrastructure = infrastructure;
         this.isVerified = 0;
-    }
-
-    public String getId() {
-        return this.complaintId;
-    }
-
-    public void setId(String id) {
-        this.complaintId = id;
     }
 
     public CommunityAgent getAssignedAgent() {
@@ -120,9 +115,6 @@ public class Complaint {
         updateLastModified();
     }
 
-    public void calculatePriority() {
-    }
-
     public boolean isVerified() {
         return this.isVerified == 1;
     }
@@ -165,7 +157,6 @@ public class Complaint {
     public boolean isClosed() {
         return "Resolved".equals(this.status) || "Closed".equals(this.status);
     }
-
     public String getPriorityString() {
         switch (this.priorityLevel) {
             case 1:

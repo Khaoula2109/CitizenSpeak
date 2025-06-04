@@ -15,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/password")
+@CrossOrigin(origins = "*")
 public class PasswordController {
 
     private final UserService userService;
@@ -29,39 +30,60 @@ public class PasswordController {
             @Valid @RequestBody ChangePasswordRequest request,
             Authentication authentication) {
 
-        String email = authentication.getName();
-        userService.changePassword(email, request.getCurrentPassword(), request.getNewPassword());
+        try {
+            String email = authentication.getName();
+            userService.changePassword(email, request.getCurrentPassword(), request.getNewPassword());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Password changed successfully");
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Password changed successfully");
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/forgot")
     public ResponseEntity<Map<String, Object>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
 
-        userService.sendPasswordResetToken(request.getEmail());
+        try {
+            userService.sendPasswordResetToken(request.getEmail());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "If your email exists in our database, you will receive a password reset link");
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "If your email exists in our database, you will receive a password reset link");
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/reset")
     public ResponseEntity<Map<String, Object>> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request) {
 
-        userService.resetPassword(request.getToken(), request.getNewPassword());
+        try {
+            userService.resetPassword(request.getToken(), request.getNewPassword());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Password has been reset successfully");
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Password has been reset successfully");
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 }

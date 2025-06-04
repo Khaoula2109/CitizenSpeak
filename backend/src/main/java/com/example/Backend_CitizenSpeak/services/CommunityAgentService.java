@@ -38,15 +38,21 @@ public class CommunityAgentService {
     }
 
     public List<CommunityAgent> getActiveAgents() {
-        return communityAgentRepository.findByActiveTrue();
+        try {
+            return communityAgentRepository.findByActiveTrue();
+        } catch (Exception e) {
+            return communityAgentRepository.findAll();
+        }
     }
 
     public List<CommunityAgent> getAgentsByService(String service) {
-        return communityAgentRepository.findByService(service);
-    }
-
-    public List<CommunityAgent> getAgentsByDepartment(String departmentId) {
-        return communityAgentRepository.findByDepartmentDepartmentId(departmentId);
+        try {
+            return communityAgentRepository.findByService(service);
+        } catch (Exception e) {
+            return getAllAgents().stream()
+                    .filter(agent -> service.equals(agent.getService()))
+                    .toList();
+        }
     }
 
     public CommunityAgent createAgent(CommunityAgent agent) {
@@ -63,31 +69,68 @@ public class CommunityAgentService {
     }
 
     public boolean existsByEmail(String email) {
-        return communityAgentRepository.existsByEmail(email);
+        try {
+            return communityAgentRepository.existsByEmail(email);
+        } catch (Exception e) {
+            return findAgentByEmail(email).isPresent();
+        }
     }
 
     public boolean isAgentActive(String agentId) {
-        CommunityAgent agent = getAgentById(agentId);
-        return agent.isActive();
+        try {
+            CommunityAgent agent = getAgentById(agentId);
+            return agent.isActive();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public List<CommunityAgent> searchAgentsByName(String name) {
-        return communityAgentRepository.findByNameContainingIgnoreCase(name);
+        try {
+            return communityAgentRepository.findByNameContainingIgnoreCase(name);
+        } catch (Exception e) {
+            return getAllAgents().stream()
+                    .filter(agent -> agent.getName() != null &&
+                            agent.getName().toLowerCase().contains(name.toLowerCase()))
+                    .toList();
+        }
     }
 
     public List<CommunityAgent> getAgentsByRole(String role) {
-        return communityAgentRepository.findByRole(role);
+        try {
+            return communityAgentRepository.findByRole(role);
+        } catch (Exception e) {
+            return getAllAgents().stream()
+                    .filter(agent -> role.equals(agent.getRole()))
+                    .toList();
+        }
     }
 
     public long getTotalAgentsCount() {
-        return communityAgentRepository.count();
+        try {
+            return communityAgentRepository.count();
+        } catch (Exception e) {
+            return getAllAgents().size();
+        }
     }
 
     public long getActiveAgentsCount() {
-        return communityAgentRepository.countByActiveTrue();
+        try {
+            return communityAgentRepository.countByActiveTrue();
+        } catch (Exception e) {
+            return getAllAgents().stream()
+                    .filter(CommunityAgent::isActive)
+                    .count();
+        }
     }
 
     public long getAgentsCountByService(String service) {
-        return communityAgentRepository.countByService(service);
+        try {
+            return communityAgentRepository.countByService(service);
+        } catch (Exception e) {
+            return getAllAgents().stream()
+                    .filter(agent -> service.equals(agent.getService()))
+                    .count();
+        }
     }
 }

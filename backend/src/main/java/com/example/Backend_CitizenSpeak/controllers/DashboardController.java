@@ -35,16 +35,37 @@ public class DashboardController {
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        long totalComplaints    = complaintRepository.count();
-        long resolvedComplaints = complaintRepository.countByStatus("Resolved");
-        long pendingComplaints  = complaintRepository.countByStatus("Pending");
-        long activeAgents       = agentRepository.count();
+        long totalComplaints = complaintRepository.count();
+        long resolvedComplaints;
+        long pendingComplaints;
+        long activeAgents = agentRepository.count();
 
-        Map<String,Object> stats = new HashMap<>();
-        stats.put("total",    totalComplaints);
+        try {
+            resolvedComplaints = complaintRepository.countByStatus("Resolved");
+        } catch (Exception e) {
+            try {
+                resolvedComplaints = complaintRepository.countByStatus("résolue");
+            } catch (Exception ex) {
+                resolvedComplaints = 0;
+            }
+        }
+
+        try {
+            pendingComplaints = complaintRepository.countByStatus("Pending");
+        } catch (Exception e) {
+            try {
+                pendingComplaints = complaintRepository.countByStatus("en attente");
+            } catch (Exception ex) {
+                pendingComplaints = 0;
+            }
+        }
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total", totalComplaints);
         stats.put("resolved", resolvedComplaints);
-        stats.put("pending",  pendingComplaints);
-        stats.put("agents",   activeAgents);
+        stats.put("pending", pendingComplaints);
+        stats.put("agents", activeAgents);
+
         return ResponseEntity.ok(stats);
     }
 
@@ -52,38 +73,83 @@ public class DashboardController {
     public Map<String, Object> getDashboardOverview() {
         Map<String, Object> stats = new HashMap<>();
 
-        long totalComplaints     = mongoTemplate.count(new Query(), "complaints");
-        long resolvedComplaints  = mongoTemplate.count(
-                new Query(Criteria.where("status").is("Resolved")), "complaints");
-        long pendingComplaints   = mongoTemplate.count(
-                new Query(Criteria.where("status").is("Pending")), "complaints");
-        long newComplaints = mongoTemplate.count(
-                new Query(Criteria.where("status").is("New")), "complaints");
-        long inProgressComplaints = mongoTemplate.count(
-                new Query(Criteria.where("status").is("In Progress")), "complaints");
-        long activeAgents        = mongoTemplate.count(
+        long totalComplaints = mongoTemplate.count(new Query(), "complaints");
+        long resolvedComplaints = 0;
+        long pendingComplaints = 0;
+        long newComplaints = 0;
+        long inProgressComplaints = 0;
+
+        try {
+            resolvedComplaints = mongoTemplate.count(
+                    new Query(Criteria.where("status").is("Resolved")), "complaints");
+        } catch (Exception e) {
+            try {
+                resolvedComplaints = mongoTemplate.count(
+                        new Query(Criteria.where("status").is("résolue")), "complaints");
+            } catch (Exception ex) {
+                resolvedComplaints = 0;
+            }
+        }
+
+        try {
+            pendingComplaints = mongoTemplate.count(
+                    new Query(Criteria.where("status").is("Pending")), "complaints");
+        } catch (Exception e) {
+            try {
+                pendingComplaints = mongoTemplate.count(
+                        new Query(Criteria.where("status").is("en attente")), "complaints");
+            } catch (Exception ex) {
+                pendingComplaints = 0;
+            }
+        }
+
+        try {
+            newComplaints = mongoTemplate.count(
+                    new Query(Criteria.where("status").is("New")), "complaints");
+        } catch (Exception e) {
+            try {
+                newComplaints = mongoTemplate.count(
+                        new Query(Criteria.where("status").is("nouvelle")), "complaints");
+            } catch (Exception ex) {
+                newComplaints = 0;
+            }
+        }
+
+        try {
+            inProgressComplaints = mongoTemplate.count(
+                    new Query(Criteria.where("status").is("In Progress")), "complaints");
+        } catch (Exception e) {
+            try {
+                inProgressComplaints = mongoTemplate.count(
+                        new Query(Criteria.where("status").is("en cours")), "complaints");
+            } catch (Exception ex) {
+                inProgressComplaints = 0;
+            }
+        }
+
+        long activeAgents = mongoTemplate.count(
                 new Query(Criteria.where("active").is(true)), "agents");
-        long activeOrgs          = mongoTemplate.count(
+        long activeOrgs = mongoTemplate.count(
                 new Query(Criteria.where("active").is(true)), "organizations");
-        long totalCitizens       = mongoTemplate.count(new Query(), "citizens");
+        long totalCitizens = mongoTemplate.count(new Query(), "citizens");
         long activeInterventions = mongoTemplate.count(
-                new Query(Criteria.where("status").nin("Completed","Cancelled")),
+                new Query(Criteria.where("status").nin("Completed", "Cancelled")),
                 "interventions");
 
         double resolutionRate = totalComplaints > 0
                 ? (double) resolvedComplaints / totalComplaints * 100
                 : 0;
 
-        stats.put("totalComplaints",     totalComplaints);
-        stats.put("newComplaints",       newComplaints);
-        stats.put("resolvedComplaints",  resolvedComplaints);
-        stats.put("pendingComplaints",   pendingComplaints);
+        stats.put("totalComplaints", totalComplaints);
+        stats.put("newComplaints", newComplaints);
+        stats.put("resolvedComplaints", resolvedComplaints);
+        stats.put("pendingComplaints", pendingComplaints);
         stats.put("inProgressComplaints", inProgressComplaints);
-        stats.put("activeAgents",        activeAgents);
+        stats.put("activeAgents", activeAgents);
         stats.put("activeOrganizations", activeOrgs);
-        stats.put("totalCitizens",       totalCitizens);
+        stats.put("totalCitizens", totalCitizens);
         stats.put("activeInterventions", activeInterventions);
-        stats.put("resolutionRate",      Math.round(resolutionRate * 100.0) / 100.0);
+        stats.put("resolutionRate", Math.round(resolutionRate * 100.0) / 100.0);
 
         return stats;
     }
@@ -104,40 +170,84 @@ public class DashboardController {
         Date endDate = getYearEndDate(year);
         Criteria yearCriteria = Criteria.where("creationDate").gte(startDate).lte(endDate);
 
-        long totalComplaints     = mongoTemplate.count(new Query(yearCriteria), "complaints");
-        long resolvedComplaints  = mongoTemplate.count(
-                new Query(yearCriteria.and("status").is("Resolved")), "complaints");
-        long pendingComplaints   = mongoTemplate.count(
-                new Query(yearCriteria.and("status").is("Pending")), "complaints");
-        long newComplaints = mongoTemplate.count(
-                new Query(yearCriteria.and("status").is("New")), "complaints");
-        long inProgressComplaints = mongoTemplate.count(
-                new Query(yearCriteria.and("status").is("In Progress")), "complaints");
+        long totalComplaints = mongoTemplate.count(new Query(yearCriteria), "complaints");
+        long resolvedComplaints = 0;
+        long pendingComplaints = 0;
+        long newComplaints = 0;
+        long inProgressComplaints = 0;
 
-        long activeAgents        = mongoTemplate.count(
+        try {
+            resolvedComplaints = mongoTemplate.count(
+                    new Query(yearCriteria.and("status").is("Resolved")), "complaints");
+        } catch (Exception e) {
+            try {
+                resolvedComplaints = mongoTemplate.count(
+                        new Query(yearCriteria.and("status").is("résolue")), "complaints");
+            } catch (Exception ex) {
+                resolvedComplaints = 0;
+            }
+        }
+
+        try {
+            pendingComplaints = mongoTemplate.count(
+                    new Query(yearCriteria.and("status").is("Pending")), "complaints");
+        } catch (Exception e) {
+            try {
+                pendingComplaints = mongoTemplate.count(
+                        new Query(yearCriteria.and("status").is("en attente")), "complaints");
+            } catch (Exception ex) {
+                pendingComplaints = 0;
+            }
+        }
+
+        try {
+            newComplaints = mongoTemplate.count(
+                    new Query(yearCriteria.and("status").is("New")), "complaints");
+        } catch (Exception e) {
+            try {
+                newComplaints = mongoTemplate.count(
+                        new Query(yearCriteria.and("status").is("nouvelle")), "complaints");
+            } catch (Exception ex) {
+                newComplaints = 0;
+            }
+        }
+
+        try {
+            inProgressComplaints = mongoTemplate.count(
+                    new Query(yearCriteria.and("status").is("In Progress")), "complaints");
+        } catch (Exception e) {
+            try {
+                inProgressComplaints = mongoTemplate.count(
+                        new Query(yearCriteria.and("status").is("en cours")), "complaints");
+            } catch (Exception ex) {
+                inProgressComplaints = 0;
+            }
+        }
+
+        long activeAgents = mongoTemplate.count(
                 new Query(Criteria.where("active").is(true)), "agents");
-        long activeOrgs          = mongoTemplate.count(
+        long activeOrgs = mongoTemplate.count(
                 new Query(Criteria.where("active").is(true)), "organizations");
-        long totalCitizens       = mongoTemplate.count(new Query(), "citizens");
+        long totalCitizens = mongoTemplate.count(new Query(), "citizens");
         long activeInterventions = mongoTemplate.count(
-                new Query(Criteria.where("status").nin("Completed","Cancelled")),
+                new Query(Criteria.where("status").nin("Completed", "Cancelled")),
                 "interventions");
 
         double resolutionRate = totalComplaints > 0
                 ? (double) resolvedComplaints / totalComplaints * 100
                 : 0;
 
-        stats.put("totalComplaints",     totalComplaints);
-        stats.put("newComplaints",       newComplaints);
-        stats.put("resolvedComplaints",  resolvedComplaints);
-        stats.put("pendingComplaints",   pendingComplaints);
+        stats.put("totalComplaints", totalComplaints);
+        stats.put("newComplaints", newComplaints);
+        stats.put("resolvedComplaints", resolvedComplaints);
+        stats.put("pendingComplaints", pendingComplaints);
         stats.put("inProgressComplaints", inProgressComplaints);
-        stats.put("activeAgents",        activeAgents);
+        stats.put("activeAgents", activeAgents);
         stats.put("activeOrganizations", activeOrgs);
-        stats.put("totalCitizens",       totalCitizens);
+        stats.put("totalCitizens", totalCitizens);
         stats.put("activeInterventions", activeInterventions);
-        stats.put("resolutionRate",      Math.round(resolutionRate * 100.0) / 100.0);
-        stats.put("year",                year);
+        stats.put("resolutionRate", Math.round(resolutionRate * 100.0) / 100.0);
+        stats.put("year", year);
 
         return stats;
     }
@@ -148,29 +258,57 @@ public class DashboardController {
         Date startDate = getYearStartDate(year);
         Date endDate = getYearEndDate(year);
 
-        Aggregation agg = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
-                Aggregation.lookup("agents", "assignedAgent", "_id", "agent"),
-                Aggregation.unwind("agent", false),
-                Aggregation.lookup("departments", "agent.department", "_id", "department"),
-                Aggregation.unwind("department", false),
-                Aggregation.group("department.name")
-                        .count().as("total")
-                        .sum(ConditionalOperators.when(Criteria.where("status").is("Resolved"))
-                                .then(1).otherwise(0))
-                        .as("resolved")
-                        .sum(ConditionalOperators.when(Criteria.where("status").is("Pending"))
-                                .then(1).otherwise(0))
-                        .as("pending")
-                        .sum(ConditionalOperators.when(Criteria.where("status").is("In Progress"))
-                                .then(1).otherwise(0))
-                        .as("inProgress"),
-                Aggregation.project("total","resolved","pending","inProgress")
-                        .and("_id").as("name")
-        );
-        return (List<Map<String,Object>>)(List<?>)
-                mongoTemplate.aggregate(agg, "complaints", Map.class)
+        try {
+            Aggregation agg = Aggregation.newAggregation(
+                    Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
+                    Aggregation.lookup("agents", "assignedAgent", "_id", "agent"),
+                    Aggregation.unwind("agent", false),
+                    Aggregation.lookup("departments", "agent.department", "_id", "department"),
+                    Aggregation.unwind("department", false),
+                    Aggregation.group("department.name")
+                            .count().as("total")
+                            .sum(ConditionalOperators.when(Criteria.where("status").is("Resolved"))
+                                    .then(1).otherwise(0))
+                            .as("resolved")
+                            .sum(ConditionalOperators.when(Criteria.where("status").is("Pending"))
+                                    .then(1).otherwise(0))
+                            .as("pending")
+                            .sum(ConditionalOperators.when(Criteria.where("status").is("In Progress"))
+                                    .then(1).otherwise(0))
+                            .as("inProgress"),
+                    Aggregation.project("total", "resolved", "pending", "inProgress")
+                            .and("_id").as("name")
+            );
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
+                    .getMappedResults();
+        } catch (Exception e) {
+            try {
+                Aggregation agg = Aggregation.newAggregation(
+                        Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
+                        Aggregation.lookup("agents", "assignedAgent", "_id", "agent"),
+                        Aggregation.unwind("agent", false),
+                        Aggregation.lookup("departments", "agent.department", "_id", "department"),
+                        Aggregation.unwind("department", false),
+                        Aggregation.group("department.name")
+                                .count().as("total")
+                                .sum(ConditionalOperators.when(Criteria.where("status").is("résolue"))
+                                        .then(1).otherwise(0))
+                                .as("resolved")
+                                .sum(ConditionalOperators.when(Criteria.where("status").is("en attente"))
+                                        .then(1).otherwise(0))
+                                .as("pending")
+                                .sum(ConditionalOperators.when(Criteria.where("status").is("en cours"))
+                                        .then(1).otherwise(0))
+                                .as("inProgress"),
+                        Aggregation.project("total", "resolved", "pending", "inProgress")
+                                .and("_id").as("name")
+                );
+                return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
                         .getMappedResults();
+            } catch (Exception ex) {
+                return List.of();
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -184,9 +322,8 @@ public class DashboardController {
                 Aggregation.group("status").count().as("count"),
                 Aggregation.project("count").and("_id").as("status")
         );
-        return (List<Map<String,Object>>)(List<?>)
-                mongoTemplate.aggregate(agg, "complaints", Map.class)
-                        .getMappedResults();
+        return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
+                .getMappedResults();
     }
 
     @SuppressWarnings("unchecked")
@@ -195,25 +332,49 @@ public class DashboardController {
         Date startDate = getYearStartDate(year);
         Date endDate = getYearEndDate(year);
 
-        Aggregation agg = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
-                Aggregation.project()
-                        .and("status").as("status")
-                        .and(DateOperators.DateToString.dateOf("creationDate")
-                                .toString("%Y-%m"))
-                        .as("monthYear"),
-                Aggregation.group("monthYear")
-                        .count().as("nouvelles")
-                        .sum(ConditionalOperators.when(Criteria.where("status").is("Resolved"))
-                                .then(1).otherwise(0))
-                        .as("resolues"),
-                Aggregation.sort(Sort.Direction.ASC, "_id"),
-                Aggregation.project("nouvelles","resolues")
-                        .and("_id").as("month")
-        );
-        return (List<Map<String,Object>>)(List<?>)
-                mongoTemplate.aggregate(agg, "complaints", Map.class)
+        try {
+            Aggregation agg = Aggregation.newAggregation(
+                    Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
+                    Aggregation.project()
+                            .and("status").as("status")
+                            .and(DateOperators.DateToString.dateOf("creationDate")
+                                    .toString("%Y-%m"))
+                            .as("monthYear"),
+                    Aggregation.group("monthYear")
+                            .count().as("nouvelles")
+                            .sum(ConditionalOperators.when(Criteria.where("status").is("Resolved"))
+                                    .then(1).otherwise(0))
+                            .as("resolues"),
+                    Aggregation.sort(Sort.Direction.ASC, "_id"),
+                    Aggregation.project("nouvelles", "resolues")
+                            .and("_id").as("month")
+            );
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
+                    .getMappedResults();
+        } catch (Exception e) {
+            try {
+                Aggregation agg = Aggregation.newAggregation(
+                        Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
+                        Aggregation.project()
+                                .and("status").as("status")
+                                .and(DateOperators.DateToString.dateOf("creationDate")
+                                        .toString("%Y-%m"))
+                                .as("monthYear"),
+                        Aggregation.group("monthYear")
+                                .count().as("nouvelles")
+                                .sum(ConditionalOperators.when(Criteria.where("status").is("résolue"))
+                                        .then(1).otherwise(0))
+                                .as("resolues"),
+                        Aggregation.sort(Sort.Direction.ASC, "_id"),
+                        Aggregation.project("nouvelles", "resolues")
+                                .and("_id").as("month")
+                );
+                return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
                         .getMappedResults();
+            } catch (Exception ex) {
+                return List.of();
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -225,7 +386,7 @@ public class DashboardController {
         try {
             Aggregation agg = Aggregation.newAggregation(
                     Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
-                    Aggregation.lookup("categories","category","_id","categoryInfo"),
+                    Aggregation.lookup("categories", "category", "_id", "categoryInfo"),
                     Aggregation.unwind("categoryInfo", true),
                     Aggregation.addFields()
                             .addField("categoryLabel")
@@ -234,24 +395,22 @@ public class DashboardController {
                                     .otherwise("$category"))
                             .build(),
                     Aggregation.group("categoryLabel").count().as("count"),
-                    Aggregation.sort(Sort.Direction.DESC,"count"),
+                    Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(5),
                     Aggregation.project("count").and("_id").as("name")
             );
-            return (List<Map<String,Object>>)(List<?>)
-                    mongoTemplate.aggregate(agg,"complaints",Map.class)
-                            .getMappedResults();
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
+                    .getMappedResults();
         } catch (Exception e) {
             Aggregation fallbackAgg = Aggregation.newAggregation(
                     Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)),
                     Aggregation.group("category").count().as("count"),
-                    Aggregation.sort(Sort.Direction.DESC,"count"),
+                    Aggregation.sort(Sort.Direction.DESC, "count"),
                     Aggregation.limit(5),
                     Aggregation.project("count").and("_id").as("name")
             );
-            return (List<Map<String,Object>>)(List<?>)
-                    mongoTemplate.aggregate(fallbackAgg,"complaints",Map.class)
-                            .getMappedResults();
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(fallbackAgg, "complaints", Map.class)
+                    .getMappedResults();
         }
     }
 
@@ -260,7 +419,7 @@ public class DashboardController {
     public List<Map<String, Object>> getAgentsPerformance() {
         try {
             Aggregation agg = Aggregation.newAggregation(
-                    Aggregation.lookup("departments","department","_id","dept"),
+                    Aggregation.lookup("departments", "department", "_id", "dept"),
                     Aggregation.unwind("dept", true),
                     Aggregation.addFields()
                             .addField("deptName")
@@ -273,12 +432,11 @@ public class DashboardController {
                             .avg(ConditionalOperators.when(Criteria.where("active").is(true))
                                     .then(1).otherwise(0))
                             .as("activeRate"),
-                    Aggregation.project("agentCount","activeRate")
+                    Aggregation.project("agentCount", "activeRate")
                             .and("_id").as("department")
             );
-            return (List<Map<String,Object>>)(List<?>)
-                    mongoTemplate.aggregate(agg,"agents",Map.class)
-                            .getMappedResults();
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "agents", Map.class)
+                    .getMappedResults();
         } catch (Exception e) {
             Map<String, Object> defaultDept = new HashMap<>();
             defaultDept.put("department", "Département par défaut");
@@ -318,7 +476,7 @@ public class DashboardController {
                     .getMappedResults();
 
             return raw.stream()
-                    .map(m -> (Map<String,Object>) m)
+                    .map(m -> (Map<String, Object>) m)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             Map<String, Object> defaultLocation = new HashMap<>();
@@ -337,13 +495,20 @@ public class DashboardController {
         Date endDate = getYearEndDate(year);
 
         try {
+            Criteria resolvedCriteria = Criteria.where("creationDate").gte(startDate).lte(endDate)
+                    .and("closureDate").exists(true);
+
+            try {
+                resolvedCriteria.and("status").is("Resolved");
+            } catch (Exception e) {
+                resolvedCriteria.and("status").is("résolue");
+            }
+
             Aggregation agg = Aggregation.newAggregation(
-                    Aggregation.match(Criteria.where("creationDate").gte(startDate).lte(endDate)
-                            .and("status").is("Resolved")
-                            .and("closureDate").exists(true)),
-                    Aggregation.lookup("agents","assignedAgent","_id","agent"),
+                    Aggregation.match(resolvedCriteria),
+                    Aggregation.lookup("agents", "assignedAgent", "_id", "agent"),
                     Aggregation.unwind("agent", true),
-                    Aggregation.lookup("departments","agent.department","_id","department"),
+                    Aggregation.lookup("departments", "agent.department", "_id", "department"),
                     Aggregation.unwind("department", true),
                     Aggregation.addFields()
                             .addField("departmentName")
@@ -355,17 +520,16 @@ public class DashboardController {
                                             ArithmeticOperators.Subtract.valueOf("closureDate")
                                                     .subtract("creationDate")
                                     )
-                                    .divideBy(1000L*60*60*24))
+                                    .divideBy(1000L * 60 * 60 * 24))
                             .build(),
                     Aggregation.group("departmentName")
                             .avg("resolutionTime").as("avgResolutionTime")
                             .count().as("resolvedCount"),
-                    Aggregation.project("avgResolutionTime","resolvedCount")
+                    Aggregation.project("avgResolutionTime", "resolvedCount")
                             .and("_id").as("department")
             );
-            return (List<Map<String,Object>>)(List<?>)
-                    mongoTemplate.aggregate(agg,"complaints",Map.class)
-                            .getMappedResults();
+            return (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(agg, "complaints", Map.class)
+                    .getMappedResults();
         } catch (Exception e) {
             Map<String, Object> defaultResolution = new HashMap<>();
             defaultResolution.put("department", "Département par défaut");
@@ -386,10 +550,9 @@ public class DashboardController {
                     Aggregation.group("status").count().as("count"),
                     Aggregation.project("count").and("_id").as("status")
             );
-            List<Map<String,Object>> byStatus =
-                    (List<Map<String,Object>>)(List<?>)
-                            mongoTemplate.aggregate(statusAgg,"interventions",Map.class)
-                                    .getMappedResults();
+            List<Map<String, Object>> byStatus =
+                    (List<Map<String, Object>>) (List<?>) mongoTemplate.aggregate(statusAgg, "interventions", Map.class)
+                            .getMappedResults();
 
             stats.put("totalInterventions", totalInt);
             stats.put("byStatus", byStatus);
@@ -433,10 +596,10 @@ public class DashboardController {
         } catch (Exception e) {
         }
 
-        Map<String,Object> activity = new HashMap<>();
-        activity.put("newComplaints",      recentComplaints);
+        Map<String, Object> activity = new HashMap<>();
+        activity.put("newComplaints", recentComplaints);
         activity.put("resolvedComplaints", recentResolved);
-        activity.put("newComments",        newComments);
+        activity.put("newComments", newComments);
         return activity;
     }
 }

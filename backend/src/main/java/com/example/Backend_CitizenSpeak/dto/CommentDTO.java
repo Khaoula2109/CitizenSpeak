@@ -13,6 +13,8 @@ public class CommentDTO {
     private String description;
     private Map<String, Object> citizen;
     private Map<String, Object> agent;
+    private Map<String, Object> author;
+
     private boolean isFromCurrentUser;
     private String authorType;
 

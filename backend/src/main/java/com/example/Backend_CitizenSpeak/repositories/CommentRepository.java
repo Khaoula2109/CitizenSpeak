@@ -18,16 +18,15 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
     List<Comment> findAllByOrderByCommentDateAsc();
     List<Comment> findByCitizenOrderByCommentDateAsc(Citizen citizen);
     List<Comment> findByAuthorTypeAndCitizenOrderByCommentDateAsc(String authorType, Citizen citizen);
+    List<Comment> findByCitizenOrderByCommentDateDesc(Citizen citizen);
     List<Comment> findByAgentOrderByCommentDateAsc(CommunityAgent agent);
     List<Comment> findByAuthorTypeAndAgentOrderByCommentDateAsc(String authorType, CommunityAgent agent);
-
+    List<Comment> findByAgentOrderByCommentDateDesc(CommunityAgent agent);
     List<Comment> findByAuthorTypeOrderByCommentDateAsc(String authorType);
     List<Comment> findByComplaintAndAuthorTypeOrderByCommentDateAsc(Complaint complaint, String authorType);
     List<Comment> findByComplaintOrderByCommentDateDesc(Complaint complaint);
     List<Comment> findAllByOrderByCommentDateDesc();
     List<Comment> findTop20ByOrderByCommentDateDesc();
-    List<Comment> findByCitizenOrderByCommentDateDesc(Citizen citizen);
-    List<Comment> findByAgentOrderByCommentDateDesc(CommunityAgent agent);
 
     @Query("{ 'complaint.complaintId' : ?0 }")
     List<Comment> findByComplaintComplaintId(String complaintId);
@@ -37,8 +36,10 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
 
     @Query(value = "{ 'complaint.complaintId' : ?0 }", sort = "{ 'commentDate' : -1 }")
     List<Comment> findByComplaintComplaintIdOrderByCommentDateDesc(String complaintId);
+
     @Query(value = "{ 'complaint.complaintId' : ?0, 'authorType' : ?1 }", sort = "{ 'commentDate' : 1 }")
     List<Comment> findByComplaintComplaintIdAndAuthorTypeOrderByCommentDateAsc(String complaintId, String authorType);
+
     long countByComplaint(Complaint complaint);
 
     @Query(value = "{ 'complaint.complaintId' : ?0 }", count = true)

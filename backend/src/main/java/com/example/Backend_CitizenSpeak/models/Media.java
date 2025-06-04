@@ -4,8 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import java.util.Date;
-@Getter
+
 @Setter
+@Getter
 public class Media {
     @Id
     private String mediaId;
@@ -19,6 +20,5 @@ public class Media {
         this.mediaFile = mediaFile;
         this.captureDate = captureDate;
     }
-
 
 }

@@ -7,25 +7,26 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@Setter @Getter
+@Setter
+@Getter
 public class ComplaintResponse {
     private String complaintId;
     private String title;
     private String description;
     private String status;
     private Date creationDate;
+    private Date closureDate;
     private Double latitude;
     private Double longitude;
+    private int priorityLevel;
     private Map<String, Object> category;
     private Map<String, Object> citizen;
     private List<Map<String, Object>> media;
-    private int priorityLevel;
-    private Date closureDate;
-    private int isVerified;
     private List<CommentDTO> comments;
     private List<StatusHistoryDTO> statusHistory;
     private Map<String, Object> assignedTo;
     private String department;
+    private int isVerified;
 
     private Map<String, Object> infrastructure;
     private List<Map<String, Object>> interventions;
@@ -65,7 +66,6 @@ public class ComplaintResponse {
                 ", priorityLevel=" + priorityLevel +
                 '}';
     }
-
 
 
 }

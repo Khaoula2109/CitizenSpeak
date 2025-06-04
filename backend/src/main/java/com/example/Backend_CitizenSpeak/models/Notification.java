@@ -8,23 +8,27 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
-@Getter
 @Setter
+@Getter
 @Document(collection = "notifications")
 public class Notification {
     @Id
     private String notificationId;
-
+    private String notificationType;
+    private Date sentDate;
+    private String content;
+    private boolean isRead;
+    private String complaintId;
     private String type;
     private String title;
     private String message;
     private Date createdDate;
-    private boolean isRead = false;
     private String priority;
 
     @DBRef
+    private User user;
+    @DBRef
     private User recipient;
-
     @DBRef
     private Complaint relatedComplaint;
 
@@ -37,10 +41,15 @@ public class Notification {
     private String actionUrl;
     private String iconType;
 
-    public Notification() {
-        this.createdDate = new Date();
-    }
+    public Notification() {}
 
+    public Notification(String notificationType, Date sentDate, String content, boolean isRead, User user) {
+        this.notificationType = notificationType;
+        this.sentDate = sentDate;
+        this.content = content;
+        this.isRead = isRead;
+        this.user = user;
+    }
     public Notification(String type, String title, String message, User recipient) {
         this();
         this.type = type;
@@ -65,4 +74,5 @@ public class Notification {
     public void setRead(boolean read) {
         this.isRead = read;
     }
+
 }

@@ -77,7 +77,7 @@ public class AgentComplaintController {
             CommunityAgent agent = agentRepository.findByEmail(email)
                     .orElseThrow(() -> new ResourceNotFoundException("Agent not found"));
 
-            ComplaintResponse complaintResponse = complaintService.getComplaintById(id);
+            Complaint complaintResponse = complaintService.getComplaintById(id);
 
             Complaint complaint = complaintService.getComplaintEntityById(id);
 

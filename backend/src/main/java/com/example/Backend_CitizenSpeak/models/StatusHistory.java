@@ -1,11 +1,15 @@
 package com.example.Backend_CitizenSpeak.models;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
+@Setter
+@Getter
 @Document(collection = "status_histories")
 public class StatusHistory {
     @Id
@@ -30,51 +34,4 @@ public class StatusHistory {
         this.updatedBy = updatedBy;
     }
 
-    public String getStatusHistoryId() {
-        return statusHistoryId;
-    }
-
-    public void setStatusHistoryId(String statusHistoryId) {
-        this.statusHistoryId = statusHistoryId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Date getStatusDate() {
-        return statusDate;
-    }
-
-    public void setStatusDate(Date statusDate) {
-        this.statusDate = statusDate;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public Complaint getComplaint() {
-        return complaint;
-    }
-
-    public void setComplaint(Complaint complaint) {
-        this.complaint = complaint;
-    }
-
-    public User getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(User updatedBy) {
-        this.updatedBy = updatedBy;
-    }
 }
