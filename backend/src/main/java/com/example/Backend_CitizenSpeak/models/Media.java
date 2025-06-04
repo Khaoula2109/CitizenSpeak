@@ -12,6 +12,7 @@ public class Media {
     private String mediaId;
     private String mediaFile;
     private Date captureDate;
+    private String complaintId;
 
     public Media() {}
 

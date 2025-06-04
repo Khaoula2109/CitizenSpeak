@@ -31,7 +31,7 @@ public class MediaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("permitAll()") // Permettre l'accès public
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Resource> getMediaFile(@PathVariable String id) {
         try {
             com.example.Backend_CitizenSpeak.models.Media media = mediaService.getMediaById(id);
@@ -50,7 +50,7 @@ public class MediaController {
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*") // Permettre l'accès depuis n'importe quelle origine
+                    .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                     .body(resource);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();

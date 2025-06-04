@@ -45,12 +45,14 @@ public class Organization {
 
     @Setter
     @Getter
-    private String createdBy;  // Nom de l'admin
+    private String createdBy;
     @Setter
     @Getter
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
     @DBRef
+    @Setter
+    @Getter
     private List<Department> departments;
     public Organization() {}
 

@@ -6,19 +6,10 @@ import com.example.Backend_CitizenSpeak.dto.CommentDTO;
 import com.example.Backend_CitizenSpeak.dto.StatusHistoryDTO;
 import com.example.Backend_CitizenSpeak.dto.StatusUpdateRequest;
 import com.example.Backend_CitizenSpeak.exceptions.ResourceNotFoundException;
-import com.example.Backend_CitizenSpeak.models.Citizen;
-import com.example.Backend_CitizenSpeak.models.Complaint;
-import com.example.Backend_CitizenSpeak.models.Media;
-import com.example.Backend_CitizenSpeak.models.Comment;
-import com.example.Backend_CitizenSpeak.models.StatusHistory;
-import com.example.Backend_CitizenSpeak.models.CommunityAgent;
-import com.example.Backend_CitizenSpeak.services.CategoryService;
-import com.example.Backend_CitizenSpeak.services.CitizenService;
-import com.example.Backend_CitizenSpeak.services.ComplaintService;
-import com.example.Backend_CitizenSpeak.services.MediaService;
-import com.example.Backend_CitizenSpeak.services.CommentService;
-import com.example.Backend_CitizenSpeak.services.StatusHistoryService;
-import com.example.Backend_CitizenSpeak.services.CommunityAgentService;
+import com.example.Backend_CitizenSpeak.models.*;
+import com.example.Backend_CitizenSpeak.repositories.AgentRepository;
+import com.example.Backend_CitizenSpeak.repositories.DepartmentRepository;
+import com.example.Backend_CitizenSpeak.services.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -43,6 +34,9 @@ public class ComplaintController {
     private final CommentService commentService;
     private final StatusHistoryService statusHistoryService;
     private final CommunityAgentService communityAgentService;
+    private final AgentRepository agentRepository;
+    private final DepartmentRepository departmentRepository;
+    private final UserService userService;
 
     @Autowired
     public ComplaintController(ComplaintService complaintService,
@@ -51,7 +45,10 @@ public class ComplaintController {
                                MediaService mediaService,
                                CommentService commentService,
                                StatusHistoryService statusHistoryService,
-                               CommunityAgentService communityAgentService) {
+                               CommunityAgentService communityAgentService,
+                               AgentRepository agentRepository,
+                               DepartmentRepository departmentRepository,
+                               UserService userService) {
         this.complaintService = complaintService;
         this.citizenService = citizenService;
         this.categoryService = categoryService;
@@ -59,6 +56,9 @@ public class ComplaintController {
         this.commentService = commentService;
         this.statusHistoryService = statusHistoryService;
         this.communityAgentService = communityAgentService;
+        this.agentRepository = agentRepository;
+        this.departmentRepository = departmentRepository;
+        this.userService = userService;
     }
 
     @GetMapping(value = {"", "/"})
@@ -88,7 +88,13 @@ public class ComplaintController {
         try {
             System.out.println("Request for all public complaints received");
 
-            List<Complaint> complaints = complaintService.getAllComplaints();
+            List<Complaint> complaints;
+            try {
+                complaints = complaintService.getAllComplaints();
+            } catch (Exception e) {
+                complaints = complaintService.getAllComplaintsEntities();
+            }
+
             List<ComplaintResponse> responseList = complaints.stream()
                     .map(this::convertToComplaintResponse)
                     .collect(Collectors.toList());
@@ -108,22 +114,29 @@ public class ComplaintController {
     @GetMapping(value = {"/{complaintId}", "/{complaintId}/"})
     public ResponseEntity<ComplaintResponse> getComplaintById(@PathVariable String complaintId) {
         try {
-            System.out.println("📋 Récupération des détails pour ID: " + complaintId);
+            System.out.println("Récupération des détails pour ID: " + complaintId);
 
-            Complaint complaint = complaintService.getComplaintByGeneratedId(complaintId);
+            Complaint complaint;
+            List<Comment> comments;
+            List<StatusHistory> statusHistories;
 
-            List<Comment> comments = commentService.getCommentsByComplaintGeneratedId(complaint.getComplaintId());
-            List<StatusHistory> statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(complaint.getComplaintId());
+            try {
+                complaint = complaintService.getComplaintByGeneratedId(complaintId);
+                comments = commentService.getCommentsByComplaintGeneratedId(complaint.getComplaintId());
+                statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(complaint.getComplaintId());
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintEntityById(complaintId);
+                comments = commentService.getCommentsByComplaintId(complaintId);
+                statusHistories = statusHistoryService.getStatusHistoryByComplaintId(complaintId);
+            }
 
             ComplaintResponse response = convertToComplaintDetailResponse(complaint, comments, statusHistories);
-
             return ResponseEntity.ok(response);
 
         } catch (ResourceNotFoundException ex) {
             throw ex;
-
         } catch (Exception e) {
-            System.err.println("❌ Erreur lors de la récupération: " + e.getMessage());
+            System.err.println("Erreur lors de la récupération: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Erreur lors de la récupération de la plainte", e);
         }
@@ -132,24 +145,32 @@ public class ComplaintController {
     @GetMapping(value = {"/search/{complaintId}", "/search/{complaintId}/"})
     public ResponseEntity<ComplaintResponse> searchComplaintById(@PathVariable String complaintId) {
         try {
-            System.out.println("🔍 Recherche de la plainte avec ID: " + complaintId);
+            System.out.println("Recherche de la plainte avec ID: " + complaintId);
 
-            Complaint complaint = complaintService.getComplaintByGeneratedId(complaintId);
+            Complaint complaint;
+            List<Comment> comments;
+            List<StatusHistory> statusHistories;
 
-            List<Comment> comments = commentService.getCommentsByComplaintGeneratedId(complaint.getComplaintId());
-            List<StatusHistory> statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(complaint.getComplaintId());
+            try {
+                complaint = complaintService.getComplaintByGeneratedId(complaintId);
+                comments = commentService.getCommentsByComplaintGeneratedId(complaint.getComplaintId());
+                statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(complaint.getComplaintId());
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintEntityById(complaintId);
+                comments = commentService.getCommentsByComplaintId(complaintId);
+                statusHistories = statusHistoryService.getStatusHistoryByComplaintId(complaintId);
+            }
 
             ComplaintResponse response = convertToComplaintDetailResponse(complaint, comments, statusHistories);
 
-            System.out.println("✅ Plainte trouvée: " + complaint.getTitle());
+            System.out.println("Plainte trouvée: " + complaint.getTitle());
             return ResponseEntity.ok(response);
 
         } catch (ResourceNotFoundException ex) {
-            System.err.println("❌ Plainte non trouvée: " + ex.getMessage());
-            throw ex; // Cette exception sera capturée par @ExceptionHandler(ResourceNotFoundException.class)
-
+            System.err.println("Plainte non trouvée: " + ex.getMessage());
+            throw ex;
         } catch (Exception e) {
-            System.err.println("❌ Erreur inattendue lors de la recherche: " + e.getMessage());
+            System.err.println("Erreur inattendue lors de la recherche: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Erreur lors de la recherche de la plainte", e);
         }
@@ -225,26 +246,48 @@ public class ComplaintController {
             }
 
             String email = authentication.getName();
-
-            Complaint complaint = complaintService.getComplaintByGeneratedId(complaintId);
-            System.out.println("Found complaint: " + complaint.getTitle());
-
             Comment comment = null;
 
             try {
-                Citizen citizen = citizenService.getCitizenByEmail(email);
-                System.out.println("Comment will be created by citizen: " + citizen.getName() + " (" + email + ")");
-                comment = commentService.createCommentByCitizen(description, citizen, complaint);
-
-            } catch (Exception e) {
+                Complaint complaint;
                 try {
-                    CommunityAgent agent = communityAgentService.getAgentByEmail(email);
-                    System.out.println("Comment will be created by agent: " + agent.getName() + " (" + email + ")");
-                    comment = commentService.createCommentByAgent(description, agent, complaint);
+                    complaint = complaintService.getComplaintByGeneratedId(complaintId);
+                } catch (Exception e) {
+                    complaint = complaintService.getComplaintEntityById(complaintId);
+                }
 
-                } catch (Exception ex) {
-                    System.err.println("User is neither a citizen nor an agent: " + email);
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                System.out.println("Found complaint: " + complaint.getTitle());
+
+                try {
+                    Citizen citizen = citizenService.getCitizenByEmail(email);
+                    System.out.println("Comment will be created by citizen: " + citizen.getName() + " (" + email + ")");
+                    comment = commentService.createCommentByCitizen(description, citizen, complaint);
+                } catch (Exception e) {
+                    try {
+                        CommunityAgent agent = communityAgentService.getAgentByEmail(email);
+                        System.out.println("Comment will be created by agent: " + agent.getName() + " (" + email + ")");
+                        comment = commentService.createCommentByAgent(description, agent, complaint);
+                    } catch (Exception ex) {
+                        System.err.println("User is neither a citizen nor an agent: " + email);
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                    }
+                }
+            } catch (Exception fallbackException) {
+                try {
+                    Citizen citizen = citizenService.getCitizenByEmail(email);
+                    System.out.println("Comment will be created by citizen: " + citizen.getName() + " (" + email + ")");
+
+                    Complaint complaint = complaintService.getComplaintEntityById(complaintId);
+                    System.out.println("Found complaint: " + complaint.getTitle());
+
+                    comment = commentService.createComment(description, citizen, complaint);
+                } catch (Exception finalException) {
+                    System.err.println("Error in fallback comment creation: " + finalException.getMessage());
+                    throw new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Error adding comment: " + finalException.getMessage(),
+                            finalException
+                    );
                 }
             }
 
@@ -352,7 +395,7 @@ public class ComplaintController {
                     Citizen currentUser = citizenService.getCitizenByEmail(email);
                     isAuthorized = existingComment.getCitizen() != null &&
                             existingComment.getCitizen().getUserId().equals(currentUser.getUserId());
-                    isAdmin = "Admin".equals(currentUser.getRole());
+                    isAdmin = "Admin".equals(currentUser.getRole()) || "Admin".equalsIgnoreCase(currentUser.getRole());
                 } catch (Exception e) {
                     System.out.println("User is not a citizen");
                 }
@@ -365,7 +408,7 @@ public class ComplaintController {
                     System.out.println("User is not an agent");
                     try {
                         Citizen currentUser = citizenService.getCitizenByEmail(email);
-                        isAdmin = "Admin".equals(currentUser.getRole());
+                        isAdmin = "Admin".equals(currentUser.getRole()) || "Admin".equalsIgnoreCase(currentUser.getRole());
                     } catch (Exception ex) {
                         System.out.println("User is neither citizen nor agent");
                     }
@@ -396,12 +439,51 @@ public class ComplaintController {
         }
     }
 
+    @DeleteMapping("/{complaintId}/comments/{commentId}")
+    public ResponseEntity<Map<String, Object>> deleteCommentWithResponse(
+            @PathVariable String complaintId,
+            @PathVariable String commentId,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            User currentUser = userService.getUserByEmail(email);
+
+            if (!"Admin".equalsIgnoreCase(currentUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Seuls les administrateurs peuvent supprimer des commentaires"));
+            }
+
+            commentService.deleteComment(commentId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Commentaire supprimé avec succès");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error deleting comment: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error deleting comment: " + e.getMessage()
+            );
+        }
+    }
+
     @GetMapping(value = {"/{complaintId}/comments", "/{complaintId}/comments/"})
     public ResponseEntity<List<CommentDTO>> getComplaintComments(@PathVariable String complaintId) {
         try {
             System.out.println("Request to get comments for complaint: " + complaintId);
 
-            List<Comment> comments = commentService.getCommentsByComplaintGeneratedId(complaintId);
+            List<Comment> comments;
+            try {
+                comments = commentService.getCommentsByComplaintGeneratedId(complaintId);
+            } catch (Exception e) {
+                comments = commentService.getCommentsByComplaintId(complaintId);
+            }
+
             List<CommentDTO> commentDTOs = comments.stream()
                     .map(this::convertToCommentDTO)
                     .collect(Collectors.toList());
@@ -440,11 +522,16 @@ public class ComplaintController {
             String email = authentication.getName();
             Citizen citizen = citizenService.getCitizenByEmail(email);
 
-            if (!"Admin".equals(citizen.getRole())) {
+            if (!"Admin".equals(citizen.getRole()) && !"Admin".equalsIgnoreCase(citizen.getRole())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
-            Complaint complaint = complaintService.getComplaintByGeneratedId(complaintId);
+            Complaint complaint;
+            try {
+                complaint = complaintService.getComplaintByGeneratedId(complaintId);
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintEntityById(complaintId);
+            }
 
             complaint = complaintService.updateComplaintStatus(complaint, status, notes, citizen);
 
@@ -492,19 +579,522 @@ public class ComplaintController {
         }
     }
 
+    @GetMapping("/verification-status/{id}")
+    public ResponseEntity<Map<String, Object>> getVerificationStatus(@PathVariable String id) {
+        try {
+            Complaint complaint = complaintService.getComplaintEntityById(id);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isVerified", complaint.getIsVerified());
+            response.put("priorityLevel", complaint.getPriorityLevel());
+            response.put("priority", convertLevelToPriority(complaint.getPriorityLevel()));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error checking verification status: " + e.getMessage()
+            );
+        }
+    }
+
+    @PostMapping("/{id}/validate-priority")
+    public ResponseEntity<Map<String, Object>> validatePriority(
+            @PathVariable String id,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+
+        try {
+            System.out.println("PRIORITY VALIDATION WITH ASSIGNMENT DEBUG");
+            System.out.println("Received request for ID: " + id);
+            System.out.println("Request body: " + request);
+
+            String newPriority = (String) request.get("priority");
+            Boolean accepted = (Boolean) request.get("accepted");
+            String notes = (String) request.get("notes");
+            String agentId = (String) request.get("agentId");
+            String departmentId = (String) request.get("departmentId");
+
+            System.out.println("Parsed values:");
+            System.out.println("  - priority: " + newPriority);
+            System.out.println("  - accepted: " + accepted);
+            System.out.println("  - notes: " + notes);
+            System.out.println("  - agentId: " + agentId);
+            System.out.println("  - departmentId: " + departmentId);
+
+            if (newPriority == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Priorité requise"));
+            }
+
+            String email = authentication.getName();
+            User currentUser = userService.getUserByEmail(email);
+            String userRole = currentUser != null ? currentUser.getRole() : "";
+            boolean isAdmin = "admin".equalsIgnoreCase(userRole);
+
+            if (!isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Seuls les administrateurs peuvent valider les priorités"));
+            }
+
+            System.out.println("Step 1: Validating priority...");
+            Complaint updatedComplaint = complaintService.validateComplaintPriority(
+                    id, newPriority, accepted != null ? accepted : false, notes, currentUser
+            );
+            System.out.println("Priority validated. Status: " + updatedComplaint.getStatus());
+
+            if (agentId != null && !agentId.trim().isEmpty() &&
+                    departmentId != null && !departmentId.trim().isEmpty()) {
+
+                System.out.println("Step 2: Assigning complaint...");
+                System.out.println("  - Looking for agent: " + agentId);
+                System.out.println("  - Looking for department: " + departmentId);
+
+                CommunityAgent agent = agentRepository.findById(agentId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+
+                Department department = departmentRepository.findById(departmentId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + departmentId));
+
+                System.out.println("  - Found agent: " + agent.getName());
+                System.out.println("  - Found department: " + department.getName());
+
+                updatedComplaint = complaintService.assignComplaint(updatedComplaint, agent, department, currentUser);
+                System.out.println("Assignment completed. Status: " + updatedComplaint.getStatus());
+            } else {
+                System.out.println("Step 2: No assignment requested");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Priorité validée avec succès");
+            response.put("isVerified", updatedComplaint.getIsVerified());
+            response.put("priorityLevel", updatedComplaint.getPriorityLevel());
+            response.put("priority", convertLevelToPriority(updatedComplaint.getPriorityLevel()));
+            response.put("status", updatedComplaint.getStatus());
+
+            if (updatedComplaint.getAssignedAgent() != null) {
+                Map<String, Object> assignedAgent = new HashMap<>();
+                assignedAgent.put("id", updatedComplaint.getAssignedAgent().getUserId());
+                assignedAgent.put("name", updatedComplaint.getAssignedAgent().getName());
+                assignedAgent.put("service", updatedComplaint.getAssignedAgent().getService());
+                assignedAgent.put("role", updatedComplaint.getAssignedAgent().getRole());
+                response.put("assignedTo", assignedAgent);
+
+                System.out.println("Response includes assignedTo: " + assignedAgent);
+            } else {
+                System.out.println("No assignedAgent in response");
+            }
+
+            if (updatedComplaint.getAssignedDepartment() != null) {
+                response.put("department", updatedComplaint.getAssignedDepartment().getName());
+                System.out.println("Response includes department: " + updatedComplaint.getAssignedDepartment().getName());
+            } else {
+                System.out.println("No assignedDepartment in response");
+            }
+
+            System.out.println("Sending response: " + response);
+            System.out.println("END PRIORITY VALIDATION DEBUG");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("ERROR in validatePriority: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error validating priority: " + e.getMessage()
+            );
+        }
+    }
+
+    @GetMapping("/admin-dashboard")
+    public ResponseEntity<List<ComplaintResponse>> getComplaintsForAdminDashboard(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User currentUser = userService.getUserByEmail(email);
+
+            if (!"Admin".equalsIgnoreCase(currentUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            List<Complaint> complaints;
+            try {
+                complaints = complaintService.getAllComplaintsEntities();
+            } catch (Exception e) {
+                complaints = complaintService.getAllComplaints();
+            }
+
+            List<Complaint> unverifiedComplaints = complaints.stream()
+                    .filter(c -> c.getIsVerified() == 0)
+                    .sorted((c1, c2) -> c2.getCreationDate().compareTo(c1.getCreationDate()))
+                    .collect(Collectors.toList());
+
+            List<Complaint> verifiedComplaints = complaints.stream()
+                    .filter(c -> c.getIsVerified() == 1)
+                    .sorted((c1, c2) -> c2.getCreationDate().compareTo(c1.getCreationDate()))
+                    .collect(Collectors.toList());
+
+            List<Complaint> sortedComplaints = new ArrayList<>();
+            sortedComplaints.addAll(unverifiedComplaints);
+            sortedComplaints.addAll(verifiedComplaints);
+
+            List<ComplaintResponse> responseList = sortedComplaints.stream()
+                    .map(c -> {
+                        if (c.getIsVerified() == 1) {
+                            List<Comment> comments;
+                            List<StatusHistory> statusHistories;
+                            try {
+                                comments = commentService.getCommentsByComplaintId(c.getComplaintId());
+                                statusHistories = statusHistoryService.getStatusHistoryByComplaint(c);
+                            } catch (Exception e) {
+                                comments = commentService.getCommentsByComplaintGeneratedId(c.getComplaintId());
+                                statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(c.getComplaintId());
+                            }
+                            return convertToComplaintDetailResponse(c, comments, statusHistories);
+                        } else {
+                            return convertToComplaintResponseSimple(c);
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(responseList);
+
+        } catch (Exception e) {
+            System.err.println("Error retrieving complaints for admin dashboard: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error retrieving complaints for admin dashboard: " + e.getMessage()
+            );
+        }
+    }
+
+    @GetMapping("/all-admin")
+    public ResponseEntity<List<ComplaintResponse>> getAllComplaintsForAdmin() {
+        try {
+            List<Complaint> allComplaints;
+            try {
+                allComplaints = complaintService.getAllComplaintsEntities();
+            } catch (Exception e) {
+                allComplaints = complaintService.getAllComplaints();
+            }
+
+            if (allComplaints == null || allComplaints.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Collections.emptyList());
+            }
+
+            List<ComplaintResponse> responseList = allComplaints.stream()
+                    .map(this::convertToComplaintResponse)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(responseList);
+
+        } catch (ResourceNotFoundException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Aucune plainte trouvée"
+            );
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Erreur lors de la récupération des plaintes pour l'admin"
+            );
+        }
+    }
+
+    @GetMapping("/with-comments")
+    public ResponseEntity<List<ComplaintResponse>> getAllComplaintsWithComments() {
+        List<Complaint> complaints;
+        try {
+            complaints = complaintService.getAllComplaintsEntities();
+        } catch (Exception e) {
+            complaints = complaintService.getAllComplaints();
+        }
+
+        List<ComplaintResponse> responseList = complaints.stream()
+                .map(c -> {
+                    List<Comment> comments;
+                    List<StatusHistory> statusHistories;
+                    try {
+                        comments = commentService.getCommentsByComplaintId(c.getComplaintId());
+                        statusHistories = statusHistoryService.getStatusHistoryByComplaint(c);
+                    } catch (Exception e) {
+                        comments = commentService.getCommentsByComplaintGeneratedId(c.getComplaintId());
+                        statusHistories = statusHistoryService.getStatusHistoryByComplaintGeneratedId(c.getComplaintId());
+                    }
+                    return convertToComplaintDetailResponse(c, comments, statusHistories);
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseList);
+    }
+
+    @PostMapping("/{id}/priority")
+    public ResponseEntity<Map<String, Object>> updatePriority(
+            @PathVariable String id,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+
+        try {
+            String priority = (String) request.get("priority");
+
+            if (priority == null || priority.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            Complaint complaint;
+            try {
+                complaint = complaintService.getComplaintEntityById(id);
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintByGeneratedId(id);
+            }
+
+            int priorityLevel = convertPriorityToLevel(priority);
+            complaint.setPriorityLevel(priorityLevel);
+            complaintService.updateComplaint(complaint);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Priority updated successfully");
+            response.put("priority", priority);
+            response.put("priorityLevel", priorityLevel);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error updating priority: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error updating priority: " + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    @PostMapping("/{id}/assign")
+    public ResponseEntity<Map<String, Object>> assignComplaint(
+            @PathVariable String id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+
+        try {
+            String agentId = request.get("agentId");
+            String departmentId = request.get("departmentId");
+
+            if (agentId == null || departmentId == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Agent ID et Department ID sont requis"));
+            }
+
+            String email = authentication.getName();
+            User currentUser = userService.getUserByEmail(email);
+
+            if (!"Admin".equalsIgnoreCase(currentUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Seuls les administrateurs peuvent assigner des plaintes"));
+            }
+
+            Complaint complaint;
+            try {
+                complaint = complaintService.getComplaintEntityById(id);
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintByGeneratedId(id);
+            }
+
+            if (complaint.getIsVerified() != 1) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "La plainte doit être vérifiée avant d'être assignée"));
+            }
+
+            CommunityAgent agent = agentRepository.findById(agentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Agent not found with id: " + agentId));
+
+            Department department = departmentRepository.findById(departmentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + departmentId));
+
+            complaint = complaintService.assignComplaint(complaint, agent, department, currentUser);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Plainte assignée avec succès");
+            response.put("assignedTo", Map.of(
+                    "id", agent.getUserId(),
+                    "name", agent.getName(),
+                    "role", agent.getRole(),
+                    "service", agent.getService()
+            ));
+            response.put("department", department.getName());
+            response.put("status", complaint.getStatus());
+
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Error assigning complaint: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error assigning complaint: " + e.getMessage()
+            );
+        }
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<StatusHistoryDTO>> getComplaintHistory(@PathVariable String id) {
+        try {
+            List<StatusHistory> history;
+            try {
+                history = statusHistoryService.getStatusHistoryByComplaintId(id);
+            } catch (Exception e) {
+                history = statusHistoryService.getStatusHistoryByComplaintGeneratedId(id);
+            }
+
+            List<StatusHistoryDTO> historyDTOs = history.stream()
+                    .map(this::convertToStatusHistoryDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(historyDTOs);
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error retrieving complaint history: " + e.getMessage()
+            );
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deleteComplaint(
+            @PathVariable String id,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            User currentUser = userService.getUserByEmail(email);
+
+            if (!"Admin".equalsIgnoreCase(currentUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Seuls les administrateurs peuvent supprimer des plaintes"));
+            }
+
+            complaintService.deleteComplaint(id);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Plainte supprimée avec succès");
+
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Plainte non trouvée"));
+        } catch (Exception e) {
+            System.err.println("Error deleting complaint: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error deleting complaint: " + e.getMessage()
+            );
+        }
+    }
+
+    @GetMapping("/departments/{departmentId}/agents")
+    public ResponseEntity<List<Map<String, Object>>> getAgentsByDepartment(@PathVariable String departmentId) {
+        try {
+            List<CommunityAgent> agents = agentRepository.findByDepartment_DepartmentId(departmentId);
+
+            List<Map<String, Object>> agentsList = agents.stream()
+                    .map(agent -> {
+                        Map<String, Object> agentMap = new HashMap<>();
+                        agentMap.put("id", agent.getUserId());
+                        agentMap.put("name", agent.getName());
+                        agentMap.put("email", agent.getEmail());
+                        agentMap.put("service", agent.getService());
+                        agentMap.put("phone", agent.getPhone());
+                        return agentMap;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(agentsList);
+        } catch (Exception e) {
+            System.err.println("Error retrieving agents for department: " + e.getMessage());
+            e.printStackTrace();
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Error retrieving agents: " + e.getMessage()
+            );
+        }
+    }
+
+    @GetMapping("/{id}/debug")
+    public ResponseEntity<Map<String, Object>> debugComplaint(@PathVariable String id) {
+        try {
+            Complaint complaint;
+            try {
+                complaint = complaintService.getComplaintEntityById(id);
+            } catch (Exception e) {
+                complaint = complaintService.getComplaintByGeneratedId(id);
+            }
+
+            Map<String, Object> debug = new HashMap<>();
+            debug.put("complaintId", complaint.getComplaintId());
+            debug.put("title", complaint.getTitle());
+            debug.put("status", complaint.getStatus());
+            debug.put("isVerified", complaint.getIsVerified());
+            debug.put("priorityLevel", complaint.getPriorityLevel());
+
+            if (complaint.getAssignedAgent() != null) {
+                Map<String, Object> agentMap = new HashMap<>();
+                agentMap.put("id", complaint.getAssignedAgent().getUserId());
+                agentMap.put("name", complaint.getAssignedAgent().getName());
+                agentMap.put("service", complaint.getAssignedAgent().getService());
+                debug.put("assignedAgent", agentMap);
+            } else {
+                debug.put("assignedAgent", "NULL");
+            }
+
+            if (complaint.getAssignedDepartment() != null) {
+                Map<String, Object> deptMap = new HashMap<>();
+                deptMap.put("id", complaint.getAssignedDepartment().getDepartmentId());
+                deptMap.put("name", complaint.getAssignedDepartment().getName());
+                debug.put("assignedDepartment", deptMap);
+            } else {
+                debug.put("assignedDepartment", "NULL");
+            }
+
+            return ResponseEntity.ok(debug);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 
     private ComplaintResponse convertToComplaintResponse(Complaint complaint) {
         ComplaintResponse response = new ComplaintResponse();
 
         response.setComplaintId(complaint.getComplaintId());
-
         response.setTitle(complaint.getTitle());
         response.setDescription(complaint.getDescription());
         response.setStatus(complaint.getStatus());
         response.setCreationDate(complaint.getCreationDate());
         response.setLatitude(complaint.getLatitude());
         response.setLongitude(complaint.getLongitude());
-        response.setPriorityLevel(complaint.getPriorityLevel());
+
+        try {
+            response.setPriorityLevel(complaint.getPriorityLevel());
+        } catch (Exception e) {
+            response.setPriorityLevel(3);
+        }
+
+        try {
+            response.setIsVerified(complaint.getIsVerified());
+        } catch (Exception e) {
+            response.setIsVerified(0);
+        }
 
         if (complaint.getCategory() != null) {
             Map<String, Object> categoryMap = new HashMap<>();
@@ -518,8 +1108,88 @@ public class ComplaintController {
                     .map(media -> {
                         Map<String, Object> mediaMap = new HashMap<>();
                         mediaMap.put("id", media.getMediaId());
-                        mediaMap.put("url", "/api/media/" + media.getMediaId());
+                        String mediaUrl = "/api/media/" + media.getMediaId();
+                        try {
+                            if (media.getMediaFile() != null) {
+                                mediaUrl = "http://localhost:8080/api/media/file/" + media.getMediaId();
+                                mediaMap.put("filename", media.getMediaFile());
+                            }
+                        } catch (Exception e) {
+
+                        }
+                        mediaMap.put("url", mediaUrl);
                         mediaMap.put("captureDate", media.getCaptureDate());
+                        return mediaMap;
+                    })
+                    .collect(Collectors.toList());
+            response.setMedia(mediaList);
+        }
+
+        return response;
+    }
+
+    private ComplaintResponse convertToComplaintResponseSimple(Complaint complaint) {
+        ComplaintResponse response = new ComplaintResponse();
+        response.setComplaintId(complaint.getComplaintId());
+        response.setTitle(complaint.getTitle());
+        response.setDescription(complaint.getDescription());
+        response.setStatus(complaint.getStatus());
+        response.setCreationDate(complaint.getCreationDate());
+        response.setLatitude(complaint.getLatitude());
+        response.setLongitude(complaint.getLongitude());
+        response.setIsVerified(complaint.getIsVerified());
+        response.setPriorityLevel(complaint.getPriorityLevel());
+        response.setClosureDate(complaint.getClosureDate());
+
+        if (complaint.getCategory() != null) {
+            Map<String, Object> categoryMap = new HashMap<>();
+            categoryMap.put("id", complaint.getCategory().getCategoryId());
+            categoryMap.put("label", complaint.getCategory().getLabel());
+            response.setCategory(categoryMap);
+        }
+
+        if (complaint.getCitizen() != null) {
+            Map<String, Object> citizenMap = new HashMap<>();
+            citizenMap.put("id", complaint.getCitizen().getUserId());
+            citizenMap.put("name", complaint.getCitizen().getName());
+            citizenMap.put("email", complaint.getCitizen().getEmail());
+            citizenMap.put("role", complaint.getCitizen().getRole());
+            response.setCitizen(citizenMap);
+        }
+
+        if (complaint.getAssignedAgent() != null) {
+            Map<String, Object> assignedToMap = new HashMap<>();
+            assignedToMap.put("id", complaint.getAssignedAgent().getUserId());
+            assignedToMap.put("name", complaint.getAssignedAgent().getName());
+            assignedToMap.put("email", complaint.getAssignedAgent().getEmail());
+            assignedToMap.put("service", complaint.getAssignedAgent().getService());
+            assignedToMap.put("role", complaint.getAssignedAgent().getRole());
+            response.setAssignedTo(assignedToMap);
+
+            System.out.println("Converting - AssignedAgent found: " + complaint.getAssignedAgent().getName());
+        } else {
+            System.out.println("Converting - No AssignedAgent");
+        }
+
+        if (complaint.getAssignedDepartment() != null) {
+            response.setDepartment(complaint.getAssignedDepartment().getName());
+            System.out.println("Converting - AssignedDepartment found: " + complaint.getAssignedDepartment().getName());
+        } else {
+            System.out.println("Converting - No AssignedDepartment");
+        }
+
+        if (complaint.getMedia() != null) {
+            List<Map<String, Object>> mediaList = complaint.getMedia().stream()
+                    .map(media -> {
+                        Map<String, Object> mediaMap = new HashMap<>();
+                        mediaMap.put("id", media.getMediaId());
+                        mediaMap.put("url", "http://localhost:8080/api/media/file/" + media.getMediaId());
+                        mediaMap.put("captureDate", media.getCaptureDate());
+                        try {
+                            mediaMap.put("filename", media.getMediaFile());
+                        } catch (Exception e) {
+
+                        }
                         return mediaMap;
                     })
                     .collect(Collectors.toList());
@@ -546,6 +1216,24 @@ public class ComplaintController {
         }
 
         response.setClosureDate(complaint.getClosureDate());
+
+        try {
+            if (complaint.getAssignedAgent() != null) {
+                Map<String, Object> assignedToMap = new HashMap<>();
+                assignedToMap.put("id", complaint.getAssignedAgent().getUserId());
+                assignedToMap.put("name", complaint.getAssignedAgent().getName());
+                assignedToMap.put("email", complaint.getAssignedAgent().getEmail());
+                assignedToMap.put("service", complaint.getAssignedAgent().getService());
+                assignedToMap.put("role", complaint.getAssignedAgent().getRole());
+                response.setAssignedTo(assignedToMap);
+            }
+
+            if (complaint.getAssignedDepartment() != null) {
+                response.setDepartment(complaint.getAssignedDepartment().getName());
+            }
+        } catch (Exception e) {
+
+        }
 
         if (comments != null && !comments.isEmpty()) {
             List<CommentDTO> commentDTOs = comments.stream()
@@ -579,7 +1267,6 @@ public class ComplaintController {
             authorMap.put("email", comment.getCitizen().getEmail());
             authorMap.put("role", comment.getCitizen().getRole());
             authorMap.put("type", "CITIZEN");
-
             dto.setCitizen(authorMap);
 
         } else if ("AGENT".equals(comment.getAuthorType()) && comment.getAgent() != null) {
@@ -599,15 +1286,15 @@ public class ComplaintController {
             agentMap.put("id", comment.getAgent().getUserId());
             agentMap.put("name", comment.getAgent().getName());
             agentMap.put("email", comment.getAgent().getEmail());
-            agentMap.put("role", "municipal_agent");
+            agentMap.put("role", "Agent Communal");
             agentMap.put("service", comment.getAgent().getService());
             if (comment.getAgent().getDepartment() != null) {
                 agentMap.put("department", comment.getAgent().getDepartment().getName());
                 agentMap.put("departmentId", comment.getAgent().getDepartment().getDepartmentId());
             }
             dto.setAgent(agentMap);
-
             dto.setCitizen(authorMap);
+
         } else {
             authorMap.put("id", "unknown");
             authorMap.put("name", "Utilisateur inconnu");
@@ -618,7 +1305,6 @@ public class ComplaintController {
         }
 
         dto.setAuthor(authorMap);
-
         return dto;
     }
 
@@ -639,5 +1325,30 @@ public class ComplaintController {
         }
 
         return dto;
+    }
+
+    private int convertPriorityToLevel(String priority) {
+        switch (priority.toLowerCase()) {
+            case "high":
+                return 1;
+            case "medium":
+                return 2;
+            case "low":
+                return 3;
+            default:
+                return 3;
+        }
+    }
+
+    private String convertLevelToPriority(int level) {
+        switch (level) {
+            case 1:
+                return "high";
+            case 2:
+                return "medium";
+            case 3:
+            default:
+                return "low";
+        }
     }
 }

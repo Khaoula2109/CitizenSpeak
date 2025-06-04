@@ -14,13 +14,17 @@ import java.util.List;
 public interface StatusHistoryRepository extends MongoRepository<StatusHistory, String> {
 
     List<StatusHistory> findByComplaintOrderByStatusDateAsc(Complaint complaint);
+
     @Query("{ 'complaint.complaintId' : ?0 }")
     List<StatusHistory> findByComplaintComplaintId(String complaintId);
 
+    @Query("{ 'complaint.$id' : ?0 }")
+    List<StatusHistory> findByComplaintId(String complaintId);
+
     List<StatusHistory> findByStatusOrderByStatusDateDesc(String status);
+
     List<StatusHistory> findByUpdatedByOrderByStatusDateDesc(User user);
 
-    // ✅ Méthodes utilitaires
     @Query("{ 'complaint.complaintId' : ?0, 'status' : ?1 }")
     boolean existsByComplaintComplaintIdAndStatus(String complaintId, String status);
 

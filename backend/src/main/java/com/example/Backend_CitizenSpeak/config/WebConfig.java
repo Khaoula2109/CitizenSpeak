@@ -11,5 +11,9 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
+        registry
+                .addResourceHandler("/uploads/photos/**")
+                .addResourceLocations("file:uploads/photos/")
+                .setCachePeriod(31536000);
     }
 }

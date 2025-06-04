@@ -31,22 +31,28 @@ public class CommentService {
         this.complaintRepository = complaintRepository;
     }
 
-
     public Comment getCommentById(String id) {
         return commentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + id));
     }
 
-    public List<Comment> getCommentsByComplaintGeneratedId(String complaintId) {
+    public List<Comment> getCommentsByComplaint(Complaint complaint) {
+        try {
+            return commentRepository.findByComplaintOrderByCommentDateDesc(complaint);
+        } catch (Exception e) {
+            try {
+                return commentRepository.findByComplaintOrderByCommentDateAsc(complaint);
+            } catch (Exception ex) {
+                return new ArrayList<>();
+            }
+        }
+    }
+
+    public List<Comment> getCommentsByComplaintId(String complaintId) {
         try {
             System.out.println("Fetching comments for complaint ID: " + complaintId);
-
-            Complaint complaint = complaintRepository.findByComplaintId(complaintId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Complaint not found with ID: " + complaintId));
-
-            List<Comment> comments = commentRepository.findByComplaintOrderByCommentDateAsc(complaint);
-
-            System.out.println("Found " + comments.size() + " comments (sorted by date asc)");
+            List<Comment> comments = commentRepository.findByComplaintComplaintId(complaintId);
+            System.out.println("Found " + comments.size() + " comments");
             return comments;
         } catch (Exception e) {
             System.err.println("Error fetching comments for complaint ID " + complaintId + ": " + e.getMessage());
@@ -54,6 +60,77 @@ public class CommentService {
         }
     }
 
+    public List<Comment> getCommentsByComplaintGeneratedId(String complaintId) {
+        try {
+            System.out.println("Fetching comments for complaint ID: " + complaintId);
+
+            Complaint complaint;
+            try {
+                complaint = complaintRepository.findByComplaintId(complaintId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Complaint not found with ID: " + complaintId));
+            } catch (Exception e) {
+                return getCommentsByComplaintId(complaintId);
+            }
+
+            List<Comment> comments;
+            try {
+                comments = commentRepository.findByComplaintOrderByCommentDateAsc(complaint);
+            } catch (Exception e) {
+                try {
+                    comments = commentRepository.findByComplaintOrderByCommentDateDesc(complaint);
+                } catch (Exception ex) {
+                    comments = commentRepository.findByComplaintComplaintId(complaintId);
+                }
+            }
+
+            System.out.println("Found " + comments.size() + " comments (sorted by date)");
+            return comments;
+        } catch (Exception e) {
+            System.err.println("Error fetching comments for complaint ID " + complaintId + ": " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    @Transactional
+    public Comment createComment(String description, Citizen citizen, Complaint complaint) {
+        try {
+            System.out.println("Creating comment with description: " + description);
+            System.out.println("Citizen: " + citizen.getName() + " (ID: " + citizen.getUserId() + ")");
+            System.out.println("Complaint: " + complaint.getTitle() + " (ID: " + complaint.getComplaintId() + ")");
+
+            Comment comment = new Comment();
+            comment.setDescription(description);
+            comment.setCommentDate(new Date());
+            comment.setAuthorType("CITIZEN");
+            comment.setCitizen(citizen);
+            comment.setComplaint(complaint);
+
+            Comment savedComment = commentRepository.save(comment);
+            System.out.println("Comment saved with ID: " + savedComment.getCommentId());
+
+            try {
+                if (complaint.getAssignedAgent() != null) {
+                    notificationService.notifyAgentComment(
+                            complaint.getAssignedAgent(),
+                            complaint,
+                            citizen.getName()
+                    );
+                }
+            } catch (Exception e) {
+                try {
+                    notificationService.createCommentNotification(savedComment);
+                } catch (Exception ex) {
+                    System.err.println("Error creating notification: " + ex.getMessage());
+                }
+            }
+
+            return savedComment;
+        } catch (Exception e) {
+            System.err.println("Error creating comment: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
 
     @Transactional
     public Comment createCommentByCitizen(String description, Citizen citizen, Complaint complaint) {
@@ -70,7 +147,21 @@ public class CommentService {
             Comment savedComment = commentRepository.save(comment);
             System.out.println("Comment saved with ID: " + savedComment.getCommentId());
 
-            notificationService.createCommentNotification(savedComment);
+            try {
+                notificationService.createCommentNotification(savedComment);
+            } catch (Exception e) {
+                try {
+                    if (complaint.getAssignedAgent() != null) {
+                        notificationService.notifyAgentComment(
+                                complaint.getAssignedAgent(),
+                                complaint,
+                                citizen.getName()
+                        );
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error creating notification: " + ex.getMessage());
+                }
+            }
 
             return savedComment;
         } catch (Exception e) {
@@ -95,7 +186,11 @@ public class CommentService {
             Comment savedComment = commentRepository.save(comment);
             System.out.println("Comment saved with ID: " + savedComment.getCommentId());
 
-            notificationService.createCommentNotification(savedComment);
+            try {
+                notificationService.createCommentNotification(savedComment);
+            } catch (Exception e) {
+                System.err.println("Error creating notification: " + e.getMessage());
+            }
 
             return savedComment;
         } catch (Exception e) {
@@ -105,18 +200,66 @@ public class CommentService {
         }
     }
 
-
     @Transactional
     public Comment updateCommentDescription(String commentId, String newDescription) {
-        Comment comment = getCommentById(commentId);
-        comment.setDescription(newDescription);
-        Comment updatedComment = commentRepository.save(comment);
-        System.out.println("Comment description updated: " + commentId);
-        return updatedComment;
+        try {
+            System.out.println("Updating comment with ID: " + commentId);
+            System.out.println("New description: " + newDescription);
+
+            if (newDescription == null || newDescription.trim().isEmpty()) {
+                throw new IllegalArgumentException("La description du commentaire ne peut pas être vide");
+            }
+
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Commentaire non trouvé avec l'ID: " + commentId));
+
+            comment.setDescription(newDescription.trim());
+
+            Comment updatedComment = commentRepository.save(comment);
+
+            System.out.println("Comment updated successfully with ID: " + updatedComment.getCommentId());
+            return updatedComment;
+
+        } catch (Exception e) {
+            System.err.println("Error updating comment description: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
-    public void deleteComment(String id) {
-        Comment comment = getCommentById(id);
-        commentRepository.delete(comment);
+    public Comment updateComment(Comment comment) {
+        return commentRepository.save(comment);
+    }
+
+    public void deleteComment(String commentId) {
+        try {
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Commentaire non trouvé avec l'ID: " + commentId));
+            commentRepository.delete(comment);
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            Comment comment = getCommentById(commentId);
+            commentRepository.delete(comment);
+        }
+    }
+
+    public boolean existsById(String commentId) {
+        return commentRepository.existsById(commentId);
+    }
+
+    @Transactional
+    public void deleteCommentsByComplaintId(String complaintId) {
+        try {
+            List<Comment> comments = getCommentsByComplaintId(complaintId);
+            commentRepository.deleteAll(comments);
+        } catch (Exception e) {
+            try {
+                List<Comment> comments = getCommentsByComplaintGeneratedId(complaintId);
+                commentRepository.deleteAll(comments);
+            } catch (Exception ex) {
+                System.err.println("Error deleting comments for complaint ID " + complaintId + ": " + ex.getMessage());
+            }
+        }
     }
 }

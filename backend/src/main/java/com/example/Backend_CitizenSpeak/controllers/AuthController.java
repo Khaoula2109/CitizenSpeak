@@ -119,4 +119,50 @@ public class AuthController {
                     .body(Map.of("error", "Internal server error"));
         }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
+        String tempToken = userService.processLogin(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP has been sent to your email",
+                "tempToken", tempToken
+        ));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@Valid @RequestBody OtpVerificationRequest request) {
+        String email = userService.verifyOtp(request.getToken(), request.getOtp());
+        String role = userService.getUserByEmail(email).getRole();
+        String token = tokenService.generateToken(email, role);
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP verified successfully. Login completed.",
+                "token", token,
+                "role", role
+        ));
+    }
+
+
+    @PostMapping("/generate-backup-codes")
+    public ResponseEntity<List<String>> generateBackupCodes(@RequestBody Map<String, Object> payload) {
+        String email = (String) payload.get("email");
+        int count = (Integer) payload.getOrDefault("count", 5);
+        List<String> codes = userService.generateBackupCodes(email, count);
+        return ResponseEntity.ok(codes);
+    }
+
+    @PostMapping("/verify-backup-code")
+    public ResponseEntity<Map<String, Object>> verifyBackupCode(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String backupCode = payload.get("backupCode");
+
+        userService.verifyBackupCode(email, backupCode);
+        String role = userService.getUserByEmail(email).getRole();
+        String token = tokenService.generateToken(email, role);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Backup code verified successfully.",
+                "token", token,
+                "role", role
+        ));
+    }
 }

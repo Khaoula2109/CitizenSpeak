@@ -16,8 +16,6 @@ public class Comment {
     private String commentId;
     private Date commentDate;
     private String description;
-
-    // Type d'auteur : "CITIZEN" ou "AGENT"
     private String authorType;
 
     @DBRef
@@ -31,7 +29,6 @@ public class Comment {
 
     public Comment() {}
 
-    // Constructeur pour citoyen
     public Comment(Date commentDate, String description, Citizen citizen, Complaint complaint) {
         this.commentDate = commentDate;
         this.description = description;
@@ -40,7 +37,6 @@ public class Comment {
         this.authorType = "CITIZEN";
     }
 
-    // Constructeur pour agent communal
     public Comment(Date commentDate, String description, CommunityAgent agent, Complaint complaint) {
         this.commentDate = commentDate;
         this.description = description;
@@ -49,7 +45,6 @@ public class Comment {
         this.authorType = "AGENT";
     }
 
-    // Méthode utilitaire pour obtenir le nom de l'auteur
     public String getAuthorName() {
         if ("CITIZEN".equals(authorType) && citizen != null) {
             return citizen.getName();
@@ -59,7 +54,6 @@ public class Comment {
         return "Utilisateur inconnu";
     }
 
-    // Méthode utilitaire pour obtenir l'email de l'auteur
     public String getAuthorEmail() {
         if ("CITIZEN".equals(authorType) && citizen != null) {
             return citizen.getEmail();
@@ -69,7 +63,6 @@ public class Comment {
         return null;
     }
 
-    // Méthode utilitaire pour obtenir l'ID de l'auteur
     public String getAuthorId() {
         if ("CITIZEN".equals(authorType) && citizen != null) {
             return citizen.getUserId();
@@ -79,7 +72,6 @@ public class Comment {
         return null;
     }
 
-    // Méthode utilitaire pour obtenir le rôle de l'auteur
     public String getAuthorRole() {
         if ("CITIZEN".equals(authorType) && citizen != null) {
             return citizen.getRole();

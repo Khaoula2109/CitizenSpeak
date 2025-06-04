@@ -76,8 +76,20 @@ public class SecurityConfig {
         return http.build();
     }
 
+
     @Bean
     @Order(3)
+    public SecurityFilterChain mediaFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/media/**")
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        return http.build();
+    }
+
+    @Bean
+    @Order(4)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/api/**")
@@ -85,17 +97,6 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-        return http.build();
-    }
-
-    @Bean
-    @Order(4)
-    public SecurityFilterChain mediaFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher("/api/media/**")
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
 

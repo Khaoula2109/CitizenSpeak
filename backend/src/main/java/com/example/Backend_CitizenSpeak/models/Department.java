@@ -1,5 +1,6 @@
 package com.example.Backend_CitizenSpeak.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -22,6 +23,7 @@ public class Department {
     private String status;
 
     @DBRef
+    @JsonBackReference
     private Organization organization;
 
     public Department() {}
