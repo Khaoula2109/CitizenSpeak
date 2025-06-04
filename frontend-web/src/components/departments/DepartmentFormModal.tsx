@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, Building2, Users, Phone, Mail, FileText } from 'lucide-react';
 import { Department, DepartmentFormData } from '../../types/department';
 import { EMPTY_DEPARTMENT_FORM } from '../../constants/departmentConstants';
@@ -11,22 +11,37 @@ interface DepartmentFormModalProps {
 }
 
 export function DepartmentFormModal({ isOpen, editingDepartment, onClose, onSubmit }: DepartmentFormModalProps) {
-  const [formData, setFormData] = useState<DepartmentFormData>(
-    editingDepartment ? {
-      name: editingDepartment.name,
-      manager: editingDepartment.manager,
-      employeeCount: editingDepartment.employeeCount,
-      phone: editingDepartment.phone,
-      contactEmail: editingDepartment.contactEmail,
-      status: editingDepartment.status,
-      description: editingDepartment.description ?? '',
-      budget: editingDepartment.budget ?? 0
-    } : EMPTY_DEPARTMENT_FORM
-  );
+  const [formData, setFormData] = useState<DepartmentFormData>(EMPTY_DEPARTMENT_FORM);
+
+  useEffect(() => {
+    if (editingDepartment) {
+      console.log('Setting form data for editing:', editingDepartment);
+      setFormData({
+        name: editingDepartment.name,
+        manager: editingDepartment.manager,
+        employeeCount: editingDepartment.employeeCount,
+        phone: editingDepartment.phone,
+        contactEmail: editingDepartment.contactEmail,
+        status: editingDepartment.status,
+        description: editingDepartment.description ?? '',
+        budget: editingDepartment.budget ?? 0
+      });
+    } else {
+      console.log('Resetting form data for new department');
+      setFormData(EMPTY_DEPARTMENT_FORM);
+    }
+  }, [editingDepartment]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData(EMPTY_DEPARTMENT_FORM);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Submitting form data:', formData);
       await onSubmit(formData);
       onClose();
     } catch (err) {
