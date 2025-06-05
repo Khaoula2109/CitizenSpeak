@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "829520787981",
+    "project_id": "citizenspeak-9b0b5",
+    "storage_bucket": "citizenspeak-9b0b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829520787981:android:7775160f34ea448f8f7344",
+        "android_client_info": {
+          "package_name": "com.citizenspeak.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD42g-anva3lZCoz8duUvSoTMwVAcZ7Ie4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

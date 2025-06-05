@@ -1,0 +1,108 @@
+{
+  "expo": {
+    "name": "CitizenSpeak",
+    "slug": "citizenspeak",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#844c2c",
+      "newArchEnabled": true
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.citizenspeak.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to allow you to take photos of urban issues to report them.",
+        "NSPhotoLibraryUsageDescription": "This app uses your photo library to allow you to select photos of urban issues to report them.",
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to pinpoint where urban issues are located.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location to pinpoint where urban issues are located.",
+        "NSMicrophoneUsageDescription": "This app uses your microphone to allow you to record videos of urban issues to report them.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification",
+          "fetch",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "config": {
+          "googleMapsApiKey": "AIzaSyDrzOcjj4Q0HV-OBqO2FsSxWrelKBvG7PI"
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#844c2c"
+      },
+      "package": "com.citizenspeak.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDrzOcjj4Q0HV-OBqO2FsSxWrelKBvG7PI"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#844c2c",
+          "sounds": [
+            "./assets/notificationsound.wav"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to allow you to report urban issues with images.",
+          "cameraPermission": "The app needs access to your camera to allow you to take photos of urban issues."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow CitizenSpeak to use your location to pinpoint where urban issues are located.",
+          "locationAlwaysPermission": "Allow CitizenSpeak to use your location to pinpoint where urban issues are located.",
+          "locationWhenInUsePermission": "Allow CitizenSpeak to use your location to pinpoint where urban issues are located."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "40391f46-d17f-4a41-9481-d8b84145fbf1"
+      }
+    },
+    "locales": {
+      "en": "./assets/locales/en.json",
+      "fr": "./assets/locales/fr.json",
+      "ar": "./assets/locales/ar.json"
+    },
+    "jsEngine": "hermes",
+    "owner": "khaoula2109"
+  }
+}
